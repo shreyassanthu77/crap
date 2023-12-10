@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-
-	"github.con/shreyascodes--tech/sss-lang/parser"
 )
 
 const input = `:root {
@@ -29,7 +27,7 @@ func debugPrint(i interface{}) {
 	fmt.Printf("%+v\n", i)
 }
 func main() {
-	p := parser.Parse(input)
-
-	debugPrint(p)
+	// p := parser.Parse(input)
+	//
+	// debugPrint(p)
 }
