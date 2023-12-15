@@ -4,4 +4,5 @@ type Location struct {
 	Line   int
 	Column int
 	Pos    int
+	Len    int
 }

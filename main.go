@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+
+	"github.con/shreyascodes-tech/sss-lang/lexer"
 )
 
 const input = `:root {
@@ -12,22 +14,24 @@ const input = `:root {
 	content: "Hello World";
 }
 
+a[href="/data"][method="GET"] {
+	content: json({
+		"message": "Hello World"
+	});
+}
 `
-
-// TODO: Add support for functions, expressions and objects
-// `
-// a[href="/data"][method="GET"] {
-// 	content: json({
-// 		"message": "Hello World"
-// 	});
-// }
-// `
 
 func debugPrint(i interface{}) {
 	fmt.Printf("%+v\n", i)
 }
+
 func main() {
-	// p := parser.Parse(input)
-	//
-	// debugPrint(p)
+	l := lexer.New(input)
+	for {
+		t := l.Next()
+		debugPrint(t)
+		if t.Type == lexer.EOF {
+			break
+		}
+	}
 }
