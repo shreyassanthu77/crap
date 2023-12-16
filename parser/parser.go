@@ -22,26 +22,39 @@ func New(input string) *Parser {
 func (p *Parser) Parse() Stylesheet {
 	stylesheet := Stylesheet{}
 
-	i := 0
+	atRules, rules := p.parserRules()
+	stylesheet.AtRules = append(stylesheet.AtRules, atRules...)
+	stylesheet.Rules = append(stylesheet.Rules, rules...)
+
+	return stylesheet
+}
+
+func (p *Parser) parserRules() ([]AtRule, []Rule) {
+	atRules := []AtRule{}
+	rules := []Rule{}
+
+loop:
 	for {
-		i++
-		if i > 100 {
-			panic("infinite loop")
-		}
-		token := p.next()
-		switch token.Type {
-		case lexer.EOF:
-			return stylesheet
+		next := p.next()
+		switch next.Type {
 		case lexer.COMMENT:
 			continue
+		case lexer.EOF:
+			break loop
 		case lexer.AT:
-			rule, ok := p.parseAtRule(token)
+			rule, ok := p.parseAtRule(next)
 			if !ok {
-				continue
+				break loop
 			}
-			stylesheet.AtRules = append(stylesheet.AtRules, rule)
+			atRules = append(atRules, rule)
+			// case lexer.IDENT:
+			//
+		default:
+			p.rewind(1)
+			break loop
 		}
 	}
+	return atRules, rules
 }
 
 func (p *Parser) parseAtRule(token lexer.Token) (AtRule, bool) {
@@ -59,6 +72,23 @@ func (p *Parser) parseAtRule(token lexer.Token) (AtRule, bool) {
 		return AtRule{}, false
 	}
 	rule.Param = value
+
+	if lSuirly, ok := p.eat(lexer.LSQUIRLY); ok {
+		nested := Rule{}
+		nested.Loc.Start = p.span(lSuirly.Loc.Start)
+
+		atRules, rules := p.parserRules()
+		nested.AtRules = atRules
+		nested.Rules = rules
+
+		rSuirly, ok := p.eat(lexer.RSQUIRLY)
+		if !ok {
+			return AtRule{}, false
+		}
+		nested.Loc.End = p.span(rSuirly.Loc.End)
+
+		rule.Rules = append(rule.Rules, nested)
+	}
 
 	semi, ok := p.eat(lexer.SEMICOLON)
 	if ok {
