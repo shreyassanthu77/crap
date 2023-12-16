@@ -100,22 +100,23 @@ func (p *Parser) parseValue() (Value, bool) {
 			Data: token.Value,
 		}, true
 	case lexer.IDENT:
-		id := Value{
-			Loc:  p.loc(token),
-			Type: IDENT,
-			Data: token.Value,
-		}
+		p.rewind(1)
+		id, _ := p.parseIdentifier()
 		if p.peek().Type == lexer.LPAREN {
 			return p.parseFunctionCall(id)
 		}
-		return id, true
+		return Value{
+			Loc:  id.Loc,
+			Type: IDENT,
+			Data: id,
+		}, true
 		// case lexer.LSQUIRLY:
 		// 	return p.parseExpression()
 	}
 	return Value{}, false
 }
 
-func (p *Parser) parseFunctionCall(id Value) (Value, bool) {
+func (p *Parser) parseFunctionCall(id Identifier) (Value, bool) {
 	p.eat(lexer.LPAREN)
 
 	res := Value{
@@ -123,11 +124,8 @@ func (p *Parser) parseFunctionCall(id Value) (Value, bool) {
 		Type: FUNCTION_CALL,
 	}
 	fn := FunctionCall{
-		Loc: id.Loc,
-		Name: Identifier{
-			Loc:   id.Loc,
-			Value: id.Data.(string),
-		},
+		Loc:  id.Loc,
+		Name: id,
 		Args: []Value{},
 	}
 
