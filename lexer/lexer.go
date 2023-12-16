@@ -10,6 +10,7 @@ type Lexer struct {
 	line      int
 	col       int
 	startSpan Span
+	done      bool
 }
 
 func New(input string) *Lexer {
@@ -18,10 +19,15 @@ func New(input string) *Lexer {
 		pos:   0,
 		line:  1,
 		col:   1,
+		done:  false,
 	}
 }
 
 func (l *Lexer) Next() Token {
+	if l.done {
+		return l.token(EOF)
+	}
+
 	l.skipWhitespace()
 
 	l.startSpan = l.span()
@@ -29,6 +35,7 @@ func (l *Lexer) Next() Token {
 
 	switch c {
 	case 0:
+		l.done = true
 		return l.token(EOF)
 	case '+':
 		if n := l.peek(); unicode.IsDigit(rune(n)) {
