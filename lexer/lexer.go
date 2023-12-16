@@ -83,7 +83,7 @@ func (l *Lexer) Next() Token {
 	case '{':
 		return l.token(LSQUIRLY)
 	case '}':
-		return l.token(LSQUIRLY)
+		return l.token(RSQUIRLY)
 	case '[':
 		return l.token(LBRACKET)
 	case ']':
