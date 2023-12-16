@@ -1,8 +1,14 @@
 package ast
 
+import "fmt"
+
 type Location struct {
 	Start Span
 	End   Span
+}
+
+func (l Location) String() string {
+	return fmt.Sprintf("%d:%d-%d:%d", l.Start.Line, l.Start.Col, l.End.Line, l.End.Col)
 }
 
 type Span struct {
@@ -14,6 +20,10 @@ type Span struct {
 type Identifier struct {
 	Loc   Location
 	Value string
+}
+
+func (i Identifier) String() string {
+	return fmt.Sprintf("ID(%s)", i.Value)
 }
 
 type ValueType string
@@ -33,11 +43,19 @@ type FunctionCall struct {
 	Args []Value
 }
 
+func (f FunctionCall) String() string {
+	return fmt.Sprintf("fn %s(%v)", f.Name.Value, f.Args)
+}
+
 type Expression struct {
 	Loc   Location
 	Left  Value
 	Op    string
 	Right Value
+}
+
+func (e Expression) String() string {
+	return fmt.Sprintf("%v %s %v", e.Left, e.Op, e.Right)
 }
 
 type Value struct {
@@ -46,10 +64,30 @@ type Value struct {
 	Data interface{}
 }
 
+func (v Value) String() string {
+	switch v.Type {
+	case STRING:
+		return fmt.Sprintf("/%s/", v.Data.(string))
+	case NUMBER:
+		return fmt.Sprintf("%s", v.Data.(string))
+	case HEX:
+		return fmt.Sprintf("#%s", v.Data.(string))
+	default:
+		return fmt.Sprintf("%v", v.Data)
+	}
+}
+
 type Stylesheet struct {
 	Loc     Location
 	Rules   []Rule   // content: "Hello World";
 	AtRules []AtRule // @media { ... }
+}
+
+func (s Stylesheet) String() string {
+	return fmt.Sprintf(`Stylesheet{
+AtRules: %v,
+Rules: %v,
+}`, s.AtRules, s.Rules)
 }
 
 type Rule struct {
@@ -59,10 +97,21 @@ type Rule struct {
 	Rules        []Rule        // &.a { ... }, @media { ... }
 }
 
+func (r Rule) String() string {
+	return fmt.Sprintf(`Rule{
+Selectors: %v,
+Declarations: %v,
+}`, r.Selectors, r.Declarations)
+}
+
 type Selector struct {
 	Loc        Location
 	Elements   []SelectorElement    // div > a[href="/"] etc.
 	Attributes map[Identifier]Value // [method="GET"] etc.
+}
+
+func (s Selector) String() string {
+	return fmt.Sprintf("%v %v", s.Elements, s.Attributes)
 }
 
 type SelectorElement struct {
@@ -72,15 +121,29 @@ type SelectorElement struct {
 	Next       *SelectorElement // "div > a" -> "a"
 }
 
+func (s SelectorElement) String() string {
+	return fmt.Sprintf("%s %s %v", s.Identifier.Value, s.Combinator, *s.Next)
+}
+
 type Declaration struct {
 	Loc      Location
 	Property Identifier // "content"
 	Value    Value      // "Hello World"
 }
 
+func (d Declaration) String() string {
+	return fmt.Sprintf("%s: %v;", d.Property.Value, d.Value)
+}
+
 type AtRule struct {
-	Loc    Location
-	Name   Identifier // "import", "media" etc.
-	Params []Value    // "./other.css", "screen" etc.
-	Rules  []Rule     // @media { ... }
+	Loc   Location
+	Name  Identifier // "import", "media" etc.
+	Param Value      // "./other.css", "screen" etc.
+	Rules []Rule     // @media { ... }
+}
+
+func (r AtRule) String() string {
+	return fmt.Sprintf(`@%s %s {
+%v
+}`, r.Name.Value, r.Param, r.Rules)
 }
