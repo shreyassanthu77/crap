@@ -84,10 +84,29 @@ type Stylesheet struct {
 }
 
 func (s Stylesheet) String() string {
-	return fmt.Sprintf(`Stylesheet{
-AtRules: %v,
-Rules: %v,
-}`, s.AtRules, s.Rules)
+	format := ""
+	args := []interface{}{}
+
+	format += "AtRules {"
+	for _, atRule := range s.AtRules {
+		format += "\n%s"
+		args = append(args, atRule)
+	}
+	if len(s.AtRules) > 0 {
+		format += "\n"
+	}
+
+	format += "}\nRules {"
+	for _, rule := range s.Rules {
+		format += "\n%s"
+		args = append(args, rule)
+	}
+	if len(s.Rules) > 0 {
+		format += "\n"
+	}
+	format += "}"
+
+	return fmt.Sprintf(format, args...)
 }
 
 type Rule struct {
@@ -143,7 +162,15 @@ type AtRule struct {
 }
 
 func (r AtRule) String() string {
-	return fmt.Sprintf(`@%s %s {
-%v
-}`, r.Name.Value, r.Param, r.Rules)
+	format := "@%s %s {"
+	args := []interface{}{r.Name.Value, r.Param}
+	for _, rule := range r.Rules {
+		format += "\n\t%s"
+		args = append(args, rule)
+	}
+	if len(r.Rules) > 0 {
+		format += "\n"
+	}
+	format += "}"
+	return fmt.Sprintf(format, args...)
 }
