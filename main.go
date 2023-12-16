@@ -10,6 +10,12 @@ const input = `/* This is a comment
 	 that spans multiple lines */
 @import "./other.css";
 @import url("./other.css");
+@media "hello" {
+	@import "./hello.css";
+	@media "world" {
+		@import "./world.css";
+	}
+}
 /* :root {
 	--port: 8080;
 }
