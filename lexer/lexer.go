@@ -2,15 +2,14 @@ package lexer
 
 import (
 	"unicode"
-
-	"github.con/shreyascodes-tech/sss-lang/ast"
 )
 
 type Lexer struct {
-	input string
-	pos   int
-	line  int
-	col   int
+	input     string
+	pos       int
+	line      int
+	col       int
+	startSpan Span
 }
 
 func New(input string) *Lexer {
@@ -24,53 +23,90 @@ func New(input string) *Lexer {
 
 func (l *Lexer) Next() Token {
 	l.skipWhitespace()
+
+	l.startSpan = l.span()
 	c := l.next()
 
 	switch c {
 	case 0:
-		return l.tok(EOF, l.pos-1)
+		return l.token(EOF)
 	case '+':
-		return l.tok(PLUS, l.pos-1)
+		if n := l.peek(); unicode.IsDigit(rune(n)) {
+			l.next() // a number is positive by default
+			return l.scanNumber()
+		}
+		return l.token(PLUS)
 	case '-':
-		return l.tok(MINUS, l.pos-1)
+		if n := l.peek(); unicode.IsDigit(rune(n)) {
+			return l.scanNumber()
+		}
+		if l.peek() == '-' {
+			return l.scanIdentifier()
+		}
+		return l.token(MINUS)
 	case '*':
-		return l.tok(ASTERISK, l.pos-1)
+		return l.token(ASTERISK)
 	case '/':
 		if l.peek() == '*' {
 			return l.scanComment()
 		}
-		return l.tok(SLASH, l.pos-1)
+		return l.token(SLASH)
+	case '=':
+		if l.peek() == '=' {
+			l.next()
+			return l.token(EQUALS)
+		}
+		return l.token(ASSIGN)
+	case '<':
+		if l.peek() == '=' {
+			l.next()
+			return l.token(LESSEQ)
+		}
+		return l.token(LESS)
+	case '>':
+		if l.peek() == '=' {
+			l.next()
+			return l.token(GREATEREQ)
+		}
+		return l.token(GREATER)
 	case '(':
-		return l.tok(LPAREN, l.pos-1)
+		return l.token(LPAREN)
 	case ')':
-		return l.tok(RPAREN, l.pos-1)
+		return l.token(RPAREN)
 	case '{':
-		return l.tok(LSQUIRLY, l.pos-1)
+		return l.token(LSQUIRLY)
 	case '}':
-		return l.tok(LSQUIRLY, l.pos-1)
+		return l.token(LSQUIRLY)
 	case '[':
-		return l.tok(LBRACKET, l.pos-1)
+		return l.token(LBRACKET)
 	case ']':
-		return l.tok(RBRACKET, l.pos-1)
+		return l.token(RBRACKET)
 	case ':':
-		return l.tok(COLON, l.pos-1)
+		return l.token(COLON)
 	case ';':
-		return l.tok(SEMICOLON, l.pos-1)
+		return l.token(SEMICOLON)
 	case ',':
-		return l.tok(COMMA, l.pos-1)
+		return l.token(COMMA)
 	case '.':
 		if unicode.IsDigit(rune(l.peek())) {
 			return l.scanNumber()
 		}
-		return l.tok(DOT, l.pos-1)
+		return l.token(DOT)
 	case '#':
-		return l.tok(OCTOTHORPE, l.pos-1)
+		if isHexDigit(l.peek()) {
+			return l.scanHex()
+		}
+		return l.token(OCTOTHORPE)
+	case '@':
+		return l.token(AT)
 	case '%':
-		return l.tok(PERCENT, l.pos-1)
+		return l.token(PERCENT)
 	case '!':
-		return l.tok(EXCLAMATION, l.pos-1)
-	case '>':
-		return l.tok(GREATER, l.pos-1)
+		if l.peek() == '=' {
+			l.next()
+			return l.token(NOTEQUALS)
+		}
+		return l.token(EXCLAMATION)
 	default:
 		if unicode.IsLetter(rune(c)) {
 			return l.scanIdentifier()
@@ -79,13 +115,13 @@ func (l *Lexer) Next() Token {
 		} else if c == '"' || c == '\'' {
 			return l.scanString(c)
 		} else {
-			return l.tok(ILLEGAL, l.pos-1)
+			return l.token(ILLEGAL)
 		}
 	}
 }
 
 func (l *Lexer) scanComment() Token {
-	l.next()
+	l.next() // skip the '*'
 	start := l.pos
 	for {
 		c := l.next()
@@ -94,15 +130,14 @@ func (l *Lexer) scanComment() Token {
 		}
 		if c == '*' && l.peek() == '/' {
 			end := l.pos - 1
-			l.next()
-			return l.tok(COMMENT, start, end)
+			l.next() // skip the '/'
+			return l.token_v(COMMENT, l.input[start:end], l.span())
 		}
 	}
-	return l.tok(ILLEGAL, start)
+	return l.token(ILLEGAL)
 }
 
 func (l *Lexer) scanIdentifier() Token {
-	start := l.pos - 1
 	for {
 		c := l.peek()
 		if unicode.IsLetter(rune(c)) || unicode.IsDigit(rune(c)) || c == '-' || c == '_' {
@@ -111,11 +146,10 @@ func (l *Lexer) scanIdentifier() Token {
 			break
 		}
 	}
-	return l.tok(IDENT, start)
+	return l.token(IDENT)
 }
 
 func (l *Lexer) scanNumber() Token {
-	start := l.pos - 1
 	for {
 		c := l.peek()
 		if unicode.IsDigit(rune(c)) || c == '.' {
@@ -124,45 +158,94 @@ func (l *Lexer) scanNumber() Token {
 			break
 		}
 	}
-	return l.tok(NUMBER, start)
+	return l.token(NUMBER)
+}
+
+func (l *Lexer) scanHex() Token {
+	for {
+		c := l.peek()
+		if isHexDigit(c) {
+			l.next()
+		} else {
+			break
+		}
+	}
+	return l.token(HEX)
 }
 
 func (l *Lexer) scanString(quote byte) Token {
-	start := l.pos
+	v := ""
 	for {
 		c := l.next()
 		if c == 0 {
 			break
 		}
+		if c == quote {
+			return l.token_v(STRING, v, l.span())
+		}
 		if c == '\\' {
+			switch l.peek() {
+			case 'n':
+				c = '\n'
+			case 'r':
+				c = '\r'
+			case 't':
+				c = '\t'
+			case 'f':
+				c = '\f'
+			case '\\':
+				c = '\\'
+			case quote:
+				c = quote
+			default:
+				return l.token(ILLEGAL)
+			}
 			l.next()
 		}
-		if c == quote {
-			end := l.pos - 1
-			return l.tok(STRING, start, end)
-		}
+		v += string(c)
 	}
-	return l.tok(ILLEGAL, start)
+	return l.token(ILLEGAL)
 }
 
-func (l *Lexer) tok(t TokenType, start int, end ...int) Token {
-	if t == EOF {
-		return Token{
-			Type:  t,
-			Value: "",
-			Loc:   ast.Location{Line: l.line, Column: l.col, Pos: start, Len: 0},
-		}
+func (l *Lexer) span(offset ...int) Span {
+	pos := l.pos
+	if len(offset) > 1 {
+		panic("too many arguments")
 	}
-	length := l.pos - start
-	if len(end) > 0 {
-		length = end[0] - start
+	if len(offset) == 1 {
+		pos = offset[0]
 	}
-	v := l.input[start : start+length]
+	return Span{
+		Pos:  pos,
+		Line: l.line,
+		Col:  l.col,
+	}
+}
 
+func (l *Lexer) token(t TokenType) Token {
+	end := l.span()
+	var value string
+	if l.pos <= len(l.input) {
+		value = l.input[l.startSpan.Pos:l.pos]
+	}
 	return Token{
 		Type:  t,
-		Value: v,
-		Loc:   ast.Location{Line: l.line, Column: l.col, Pos: start, Len: length},
+		Value: value,
+		Loc: Location{
+			Start: l.startSpan,
+			End:   end,
+		},
+	}
+}
+
+func (l *Lexer) token_v(t TokenType, value string, end Span) Token {
+	return Token{
+		Type:  t,
+		Value: value,
+		Loc: Location{
+			Start: l.startSpan,
+			End:   end,
+		},
 	}
 }
 
@@ -176,8 +259,11 @@ func (l *Lexer) peek() byte {
 func (l *Lexer) next() byte {
 	c := l.peek()
 	l.pos++
-	if c == '\n' {
+	if c == '\n' || c == '\r' || c == '\f' {
 		l.line++
+		if c == '\r' && l.peek() == '\n' {
+			l.pos++
+		}
 		l.col = 1
 	} else {
 		l.col++

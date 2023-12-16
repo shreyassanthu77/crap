@@ -6,7 +6,10 @@ import (
 	"github.con/shreyascodes-tech/sss-lang/lexer"
 )
 
-const input = `:root {
+const input = `/* This is a comment
+	 that spans multiple lines */
+@import "./other.css";
+:root {
 	--port: 8080;
 }
 

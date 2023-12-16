@@ -2,14 +2,27 @@ package lexer
 
 import (
 	"fmt"
-
-	"github.con/shreyascodes-tech/sss-lang/ast"
 )
+
+type Span struct {
+	Pos  int
+	Line int
+	Col  int
+}
+
+type Location struct {
+	Start Span
+	End   Span
+}
+
+func (l Location) String() string {
+	return fmt.Sprintf("%d:%d-%d:%d", l.Start.Line, l.Start.Col, l.End.Line, l.End.Col)
+}
 
 type Token struct {
 	Type  TokenType
 	Value string
-	Loc   ast.Location
+	Loc   Location
 }
 
 type TokenType string
@@ -22,6 +35,7 @@ const (
 
 	IDENT  = "IDENT"
 	NUMBER = "NUMBER"
+	HEX    = "HEX"
 	STRING = "STRING"
 
 	COLON       = "COLON"
@@ -35,19 +49,26 @@ const (
 	RBRACKET    = "RBRACKET"
 	DOT         = "DOT"
 	OCTOTHORPE  = "OCTOTHORPE"
+	AT          = "AT"
 	PLUS        = "PLUS"
 	MINUS       = "MINUS"
 	ASTERISK    = "ASTERISK"
 	SLASH       = "SLASH"
 	PERCENT     = "PERCENT"
+	ASSIGN      = "ASSIGN"
+	EQUALS      = "EQUALS"
+	NOTEQUALS   = "NOTEQUALS"
 	EXCLAMATION = "EXCLAMATION"
 	GREATER     = "GREATER"
+	GREATEREQ   = "GREATEREQ"
+	LESS        = "LESS"
+	LESSEQ      = "LESSEQ"
 )
 
 func (t Token) String() string {
 	if t.Type == EOF {
 		return "--EOF--"
 	}
-	fmtStr := "Token<%s> /%s/ %d-%d %d:%d"
-	return fmt.Sprintf(fmtStr, t.Type, t.Value, t.Loc.Pos, t.Loc.Len, t.Loc.Line, t.Loc.Column)
+	fmtStr := "Token<%s> /%s/ %s"
+	return fmt.Sprintf(fmtStr, t.Type, t.Value, t.Loc)
 }
