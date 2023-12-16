@@ -79,8 +79,8 @@ func (v Value) String() string {
 
 type Stylesheet struct {
 	Loc     Location
-	Rules   []Rule   // content: "Hello World";
 	AtRules []AtRule // @media { ... }
+	Rules   []Rule   // content: "Hello World";
 }
 
 func (s Stylesheet) String() string {
@@ -114,13 +114,41 @@ type Rule struct {
 	Selectors    []Selector    // ".a", "div", "a[href="/"]" etc.
 	Declarations []Declaration // "content: "Hello World";"
 	Rules        []Rule        // &.a { ... }, @media { ... }
+	AtRules      []AtRule      // @media { ... }
 }
 
 func (r Rule) String() string {
-	return fmt.Sprintf(`Rule{
-Selectors: %v,
-Declarations: %v,
-}`, r.Selectors, r.Declarations)
+	format := ""
+	args := []interface{}{}
+
+	for _, atRule := range r.AtRules {
+		format += "%s\n"
+		args = append(args, atRule)
+	}
+
+	if len(r.AtRules) == 0 {
+		format += "\n"
+	}
+
+	format += "\tRules %v {"
+	args = append(args, r.Selectors)
+
+	for _, declaration := range r.Declarations {
+		format += "\n\t%s"
+		args = append(args, declaration)
+	}
+
+	for _, rule := range r.Rules {
+		format += "\n\t%s"
+		args = append(args, rule)
+	}
+
+	if len(r.Declarations) > 0 || len(r.Rules) > 0 {
+		format += "\n"
+	}
+	format += "}"
+
+	return fmt.Sprintf(format, args...)
 }
 
 type Selector struct {
