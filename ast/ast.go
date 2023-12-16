@@ -1,95 +1,86 @@
 package ast
 
-type Stylesheet struct {
-	Rules   []Rule
-	Imports []string
+type Location struct {
+	Start Span
+	End   Span
 }
 
-type Rule struct {
-	Selectors    []Selector
-	Declarations []Declaration
+type Span struct {
+	Pos  int
+	Line int
+	Col  int
 }
 
-type Selector struct {
-	Tag        string
-	ID         string
-	Class      string
-	Atrributes map[string]string
+type Identifier struct {
+	Loc   Location
+	Value string
 }
 
-type Declaration struct {
-	Property string
-	Value    Value
-}
-
-type ValueType int
+type ValueType string
 
 const (
-	NUMBER ValueType = iota
-	STRING
-	FUNCTION_CALL
+	STRING        ValueType = "STRING"
+	NUMBER        ValueType = "NUMBER"
+	HEX           ValueType = "HEX"
+	IDENT         ValueType = "IDENT"
+	FUNCTION_CALL ValueType = "FUNCTION_CALL"
+	EXPRESSION    ValueType = "EXPRESSION"
 )
 
-type Value struct {
-	Type ValueType
-	data interface{}
-}
-
 type FunctionCall struct {
-	Name string
+	Loc  Location
+	Name Identifier
 	Args []Value
 }
 
-func NumberValue(n float64) Value {
-	return Value{NUMBER, n}
+type Expression struct {
+	Loc   Location
+	Left  Value
+	Op    string
+	Right Value
 }
 
-func StringValue(s string) Value {
-	return Value{STRING, s}
+type Value struct {
+	Loc  Location
+	Type ValueType
+	Data interface{}
 }
 
-func FunctionCallValue(name string, args []Value) Value {
-	return Value{FUNCTION_CALL, FunctionCall{name, args}}
+type Stylesheet struct {
+	Loc     Location
+	Rules   []Rule   // content: "Hello World";
+	AtRules []AtRule // @media { ... }
 }
 
-func (v Value) Num() float64 {
-	if v.Type != NUMBER {
-		panic("not a number")
-	}
-	return v.data.(float64)
+type Rule struct {
+	Loc          Location
+	Selectors    []Selector    // ".a", "div", "a[href="/"]" etc.
+	Declarations []Declaration // "content: "Hello World";"
+	Rules        []Rule        // &.a { ... }, @media { ... }
 }
 
-func (v Value) Str() string {
-	if v.Type != STRING {
-		panic("not a string")
-	}
-	return v.data.(string)
+type Selector struct {
+	Loc        Location
+	Elements   []SelectorElement    // div > a[href="/"] etc.
+	Attributes map[Identifier]Value // [method="GET"] etc.
 }
 
-func (v Value) Fn() FunctionCall {
-	if v.Type != FUNCTION_CALL {
-		panic("not a function call")
-	}
-	return v.data.(FunctionCall)
+type SelectorElement struct {
+	Loc        Location
+	Combinator string           // " ", ">", "+", "~"
+	Identifier Identifier       // "div", "a", "p" etc.
+	Next       *SelectorElement // "div > a" -> "a"
 }
 
-type ValueMapper struct {
-	Number       func(float64) interface{}
-	String       func(string) interface{}
-	FunctionCall func(FunctionCall) interface{}
+type Declaration struct {
+	Loc      Location
+	Property Identifier // "content"
+	Value    Value      // "Hello World"
 }
 
-func (v Value) Map(
-	mapper ValueMapper,
-) interface{} {
-	switch v.Type {
-	case NUMBER:
-		return mapper.Number(v.data.(float64))
-	case STRING:
-		return mapper.String(v.data.(string))
-	case FUNCTION_CALL:
-		return mapper.FunctionCall(v.data.(FunctionCall))
-	}
-
-	panic("unreachable")
+type AtRule struct {
+	Loc    Location
+	Name   Identifier // "import", "media" etc.
+	Params []Value    // "./other.css", "screen" etc.
+	Rules  []Rule     // @media { ... }
 }
