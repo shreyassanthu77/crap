@@ -78,127 +78,100 @@ func (v Value) String() string {
 }
 
 type Stylesheet struct {
-	Loc     Location
-	AtRules []AtRule // @media { ... }
-	Rules   []Rule   // content: "Hello World";
+	Loc   Location
+	Rules []RuleNode
 }
 
-func (s Stylesheet) String() string {
-	format := ""
-	args := []interface{}{}
+type RuleType string
 
-	format += "AtRules {"
-	for _, atRule := range s.AtRules {
-		format += "\n%s"
-		args = append(args, atRule)
-	}
-	if len(s.AtRules) > 0 {
-		format += "\n"
-	}
+const (
+	AT_RULE    RuleType = "AT_RULE"    // @media { ... }
+	STYLE_RULE RuleType = "STYLE_RULE" // div { ... }
+	DECL_RULE  RuleType = "DECL_RULE"  // color: red;
+)
 
-	format += "}\nRules {"
-	for _, rule := range s.Rules {
-		format += "\n%s"
-		args = append(args, rule)
-	}
-	if len(s.Rules) > 0 {
-		format += "\n"
-	}
-	format += "}"
-
-	return fmt.Sprintf(format, args...)
-}
-
-type Rule struct {
-	Loc          Location
-	Selectors    []Selector    // ".a", "div", "a[href="/"]" etc.
-	Declarations []Declaration // "content: "Hello World";"
-	Rules        []Rule        // &.a { ... }, @media { ... }
-	AtRules      []AtRule      // @media { ... }
-}
-
-func (r Rule) String() string {
-	format := ""
-	args := []interface{}{}
-
-	for _, atRule := range r.AtRules {
-		format += "%s\n"
-		args = append(args, atRule)
-	}
-
-	if len(r.AtRules) == 0 {
-		format += "\n"
-	}
-
-	format += "\tRules %v {"
-	args = append(args, r.Selectors)
-
-	for _, declaration := range r.Declarations {
-		format += "\n\t%s"
-		args = append(args, declaration)
-	}
-
-	for _, rule := range r.Rules {
-		format += "\n\t%s"
-		args = append(args, rule)
-	}
-
-	if len(r.Declarations) > 0 || len(r.Rules) > 0 {
-		format += "\n"
-	}
-	format += "}"
-
-	return fmt.Sprintf(format, args...)
-}
-
-type Selector struct {
-	Loc        Location
-	Elements   []SelectorElement    // div > a[href="/"] etc.
-	Attributes map[Identifier]Value // [method="GET"] etc.
-}
-
-func (s Selector) String() string {
-	return fmt.Sprintf("%v %v", s.Elements, s.Attributes)
-}
-
-type SelectorElement struct {
-	Loc        Location
-	Combinator string           // " ", ">", "+", "~"
-	Identifier Identifier       // "div", "a", "p" etc.
-	Next       *SelectorElement // "div > a" -> "a"
-}
-
-func (s SelectorElement) String() string {
-	return fmt.Sprintf("%s %s %v", s.Identifier.Value, s.Combinator, *s.Next)
-}
-
-type Declaration struct {
-	Loc      Location
-	Property Identifier // "content"
-	Value    Value      // "Hello World"
-}
-
-func (d Declaration) String() string {
-	return fmt.Sprintf("%s: %v;", d.Property.Value, d.Value)
+type RuleNode struct {
+	Loc  Location
+	Type RuleType
+	Rule interface{}
 }
 
 type AtRule struct {
-	Loc   Location
-	Name  Identifier // "import", "media" etc.
-	Param Value      // "./other.css", "screen" etc.
-	Rules []Rule     // @media { ... }
+	Name   Identifier
+	Params []Value
+	Rules  []RuleNode
 }
 
-func (r AtRule) String() string {
-	format := "@%s %s {"
-	args := []interface{}{r.Name.Value, r.Param}
-	for _, rule := range r.Rules {
-		format += "\n\t%s"
-		args = append(args, rule)
+type StyleRule struct {
+	Selectors []Selector
+	Rules     []RuleNode
+}
+
+type SelectorType string
+
+const (
+	TYPE_SELECTOR      SelectorType = "TYPE_SELECTOR"      // div
+	CLASS_SELECTOR     SelectorType = "CLASS_SELECTOR"     // .foo
+	ID_SELECTOR        SelectorType = "ID_SELECTOR"        // #foo
+	ATTRIBUTE_SELECTOR SelectorType = "ATTRIBUTE_SELECTOR" // [foo]
+	PSEUDO_SELECTOR    SelectorType = "PSEUDO_SELECTOR"    // :foo
+)
+
+type Selector struct {
+	Loc        Location
+	Type       SelectorType
+	Parts      []SelectorPart
+	Attributes map[string]Value
+	Combinator string
+	Next       *Selector
+}
+
+func (s Selector) String() string {
+	format := "S("
+	args := []interface{}{}
+	first := true
+	for _, part := range s.Parts {
+		if first {
+			first = false
+		} else {
+			format += "_"
+		}
+		format += "%s"
+		args = append(args, part)
 	}
-	if len(r.Rules) > 0 {
-		format += "\n"
+
+	if s.Next != nil {
+		format += " %s %s"
+		args = append(args, s.Combinator, *s.Next)
 	}
-	format += "}"
+	format += ")"
 	return fmt.Sprintf(format, args...)
+}
+
+type SelectorPart struct {
+	Loc   Location
+	Type  SelectorType
+	Value Value
+}
+
+func (s SelectorPart) String() string {
+	format := ""
+	switch s.Type {
+	case TYPE_SELECTOR:
+		format += "%s"
+	case CLASS_SELECTOR:
+		format += ".%s"
+	case ID_SELECTOR:
+		format += "#%s"
+	case ATTRIBUTE_SELECTOR:
+		format += "[%s]"
+	case PSEUDO_SELECTOR:
+		format += ":%s"
+	}
+	return fmt.Sprintf(format, s.Value.Data.(Identifier).Value)
+}
+
+type Declaration struct {
+	Name  Identifier
+	Value Value
 }
