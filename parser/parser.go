@@ -1,6 +1,9 @@
 package parser
 
 import (
+	"strconv"
+	"strings"
+
 	. "github.con/shreyascodes-tech/sss-lang/ast"
 	"github.con/shreyascodes-tech/sss-lang/lexer"
 )
@@ -189,8 +192,14 @@ func (p *Parser) parseSelectors() ([]Selector, bool) {
 func (p *Parser) parseSelector() (Selector, bool) {
 	selector := Selector{}
 
+	i := 0
 loop:
 	for {
+		if i > 100 {
+			panic("infinite loop")
+		}
+		i++
+
 		next := p.peek()
 		switch next.Type {
 		case lexer.COMMA:
@@ -211,6 +220,14 @@ loop:
 					selector.Next = &next
 					break loop
 				}
+			}
+
+			if next.Type != lexer.IDENT &&
+				next.Type != lexer.DOT &&
+				next.Type != lexer.OCTOTHORPE &&
+				next.Type != lexer.LBRACKET &&
+				next.Type != lexer.COLON {
+				return selector, false
 			}
 
 			id, ok := p.parseSelectorPart()
@@ -243,6 +260,8 @@ func (p *Parser) parseSelectorPart() (SelectorPart, bool) {
 	case lexer.COLON:
 		p.next()
 		part.Type = PSEUDO_SELECTOR
+	default:
+		return part, false
 	}
 
 	id, ok := p.parseIdentifier()
@@ -295,10 +314,26 @@ func (p *Parser) parseValue() (Value, bool) {
 			Data: token.Value,
 		}, true
 	case lexer.NUMBER:
+		var data interface{}
+		data = 0
+
+		if strings.Contains(token.Value, ".") {
+			v, err := strconv.ParseFloat(token.Value, 64)
+			if err != nil {
+				return Value{}, false
+			}
+			data = v
+		} else {
+			v, err := strconv.ParseInt(token.Value, 10, 64)
+			if err != nil {
+				return Value{}, false
+			}
+			data = v
+		}
 		return Value{
 			Loc:  p.loc(token),
 			Type: NUMBER,
-			Data: float64(0),
+			Data: data,
 		}, true
 	case lexer.HEX:
 		return Value{

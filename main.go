@@ -10,14 +10,9 @@ import (
 const input = `/* This is a comment
 	 that spans multiple lines */
 @import "other.css";
-	:root a > b.c {
-	color: red;
-	
-	b {
-		color: blue;
-	}
+:root {
+	--port: 3000;
 }
-
 /* .a[href="/"][method="GET"] {
 	content: "Hello World";
 }

@@ -68,8 +68,6 @@ func (v Value) String() string {
 	switch v.Type {
 	case STRING:
 		return fmt.Sprintf("/%s/", v.Data.(string))
-	case NUMBER:
-		return fmt.Sprintf("%s", v.Data.(string))
 	case HEX:
 		return fmt.Sprintf("#%s", v.Data.(string))
 	default:
