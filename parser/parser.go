@@ -191,6 +191,7 @@ func (p *Parser) parseSelectors() ([]Selector, bool) {
 
 func (p *Parser) parseSelector() (Selector, bool) {
 	selector := Selector{}
+	attributes := map[string]Value{}
 
 	i := 0
 loop:
@@ -230,7 +231,7 @@ loop:
 				return selector, false
 			}
 
-			id, ok := p.parseSelectorPart()
+			id, ok := p.parseSelectorPart(attributes)
 			if !ok {
 				break loop
 			}
@@ -238,10 +239,11 @@ loop:
 		}
 	}
 
+	selector.Attributes = attributes
 	return selector, true
 }
 
-func (p *Parser) parseSelectorPart() (SelectorPart, bool) {
+func (p *Parser) parseSelectorPart(attributes map[string]Value) (SelectorPart, bool) {
 	next := p.peek()
 	part := SelectorPart{}
 	part.Loc.Start = p.span(next.Loc.Start)
@@ -315,6 +317,7 @@ func (p *Parser) parseValue() (Value, bool) {
 		}, true
 	case lexer.NUMBER:
 		var data interface{}
+		var numType ValueType
 		data = 0
 
 		if strings.Contains(token.Value, ".") {
@@ -322,17 +325,19 @@ func (p *Parser) parseValue() (Value, bool) {
 			if err != nil {
 				return Value{}, false
 			}
+			numType = NUMBER_FLOAT
 			data = v
 		} else {
 			v, err := strconv.ParseInt(token.Value, 10, 64)
 			if err != nil {
 				return Value{}, false
 			}
+			numType = NUMBER_INT
 			data = v
 		}
 		return Value{
 			Loc:  p.loc(token),
-			Type: NUMBER,
+			Type: numType,
 			Data: data,
 		}, true
 	case lexer.HEX:

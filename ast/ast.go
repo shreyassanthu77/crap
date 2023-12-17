@@ -30,7 +30,8 @@ type ValueType string
 
 const (
 	STRING        ValueType = "STRING"
-	NUMBER        ValueType = "NUMBER"
+	NUMBER_INT    ValueType = "NUMBER_INT"
+	NUMBER_FLOAT  ValueType = "NUMBER_FLOAT"
 	HEX           ValueType = "HEX"
 	IDENT         ValueType = "IDENT"
 	FUNCTION_CALL ValueType = "FUNCTION_CALL"
