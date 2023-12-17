@@ -22,16 +22,19 @@ func New(input string) *Parser {
 func (p *Parser) Parse() Stylesheet {
 	stylesheet := Stylesheet{}
 
-	atRules, rules := p.parserRules()
-	stylesheet.AtRules = append(stylesheet.AtRules, atRules...)
+	rules := p.parserRules()
 	stylesheet.Rules = append(stylesheet.Rules, rules...)
+
+	if len(rules) > 0 {
+		stylesheet.Loc.Start = rules[0].Loc.Start
+		stylesheet.Loc.End = rules[len(rules)-1].Loc.End
+	}
 
 	return stylesheet
 }
 
-func (p *Parser) parserRules() ([]AtRule, []Rule) {
-	atRules := []AtRule{}
-	rules := []Rule{}
+func (p *Parser) parserRules() []RuleNode {
+	rules := []RuleNode{}
 
 loop:
 	for {
@@ -46,56 +49,230 @@ loop:
 			if !ok {
 				break loop
 			}
-			atRules = append(atRules, rule)
-			// case lexer.IDENT:
-			//
+			rules = append(rules, rule)
+		case lexer.COLON:
+			p.rewind(1)
+			rule, ok := p.parseRule()
+			if !ok {
+				break loop
+			}
+			rules = append(rules, rule)
+		case lexer.IDENT:
+			if p.peek().Type == lexer.COLON {
+				rule, ok := p.parseDeclaration(next)
+				if !ok {
+					break loop
+				}
+				rules = append(rules, rule)
+				continue
+			}
+			p.rewind(1)
+			rule, ok := p.parseRule()
+			if !ok {
+				break loop
+			}
+			rules = append(rules, rule)
 		default:
 			p.rewind(1)
 			break loop
 		}
 	}
-	return atRules, rules
+	return rules
 }
 
-func (p *Parser) parseAtRule(token lexer.Token) (AtRule, bool) {
-	rule := AtRule{}
+func (p *Parser) parseDeclaration(token lexer.Token) (RuleNode, bool) {
+	rule := RuleNode{}
+	declaration := Declaration{}
+	rule.Loc.Start = p.span(token.Loc.Start)
+
+	declaration.Name = Identifier{
+		Loc:   p.loc(token),
+		Value: token.Value,
+	}
+
+	if _, ok := p.eat(lexer.COLON); !ok {
+		return rule, false
+	}
+
+	value, ok := p.parseValue()
+	if !ok {
+		return rule, false
+	}
+	declaration.Value = value
+
+	if _, ok := p.eat(lexer.SEMICOLON); ok {
+		rule.Loc.End = p.span(token.Loc.End)
+	}
+
+	rule.Rule = declaration
+	rule.Type = DECL_RULE
+	return rule, true
+}
+
+func (p *Parser) parseAtRule(token lexer.Token) (RuleNode, bool) {
+	rule := RuleNode{}
+	atRule := AtRule{}
 	rule.Loc.Start = p.span(token.Loc.Start)
 
 	id, ok := p.parseIdentifier()
 	if !ok {
-		return AtRule{}, false
+		return rule, false
 	}
-	rule.Name = id
+	atRule.Name = id
 
 	value, ok := p.parseValue()
 	if !ok {
-		return AtRule{}, false
-	}
-	rule.Param = value
-
-	if lSuirly, ok := p.eat(lexer.LSQUIRLY); ok {
-		nested := Rule{}
-		nested.Loc.Start = p.span(lSuirly.Loc.Start)
-
-		atRules, rules := p.parserRules()
-		nested.AtRules = atRules
-		nested.Rules = rules
-
-		rSuirly, ok := p.eat(lexer.RSQUIRLY)
-		if !ok {
-			return AtRule{}, false
-		}
-		nested.Loc.End = p.span(rSuirly.Loc.End)
-
-		rule.Rules = append(rule.Rules, nested)
+		return rule, false
 	}
 
-	semi, ok := p.eat(lexer.SEMICOLON)
-	if ok {
-		rule.Loc.End = p.span(semi.Loc.End)
+	atRule.Params = []Value{value}
+
+	if lSquirly, ok := p.eat(lexer.LSQUIRLY); ok {
+		children, loc := p.parseBlock(lSquirly)
+		atRule.Rules = children
+		rule.Loc.End = loc.End
 	}
 
+	if _, ok := p.eat(lexer.SEMICOLON); ok {
+		rule.Loc.End = p.span(token.Loc.End)
+	}
+
+	rule.Rule = atRule
+	rule.Type = AT_RULE
 	return rule, true
+}
+
+func (p *Parser) parseRule() (RuleNode, bool) {
+	rule := RuleNode{}
+	styleRule := StyleRule{}
+
+	selectors, ok := p.parseSelectors()
+	if !ok {
+		return rule, false
+	}
+	styleRule.Selectors = selectors
+
+	if lSquirly, ok := p.eat(lexer.LSQUIRLY); ok {
+		children, loc := p.parseBlock(lSquirly)
+		styleRule.Rules = children
+		rule.Loc.End = loc.End
+	}
+
+	rule.Rule = styleRule
+	rule.Type = STYLE_RULE
+	return rule, true
+}
+
+func (p *Parser) parseSelectors() ([]Selector, bool) {
+	selectors := []Selector{}
+
+	for {
+		next := p.peek()
+		switch next.Type {
+		case lexer.COMMA:
+			p.next()
+			continue
+		case lexer.LSQUIRLY:
+			return selectors, true
+		case lexer.EOF:
+			return selectors, true
+		}
+
+		selector, ok := p.parseSelector()
+		if !ok {
+			return selectors, false
+		}
+		selectors = append(selectors, selector)
+	}
+}
+
+func (p *Parser) parseSelector() (Selector, bool) {
+	selector := Selector{}
+
+loop:
+	for {
+		next := p.peek()
+		switch next.Type {
+		case lexer.COMMA:
+			return selector, true
+		case lexer.LSQUIRLY:
+			return selector, true
+		case lexer.EOF:
+			return selector, true
+		default:
+			if isCombinator(next) {
+				if selector.Next != nil {
+					return selector, false
+				}
+				selector.Combinator = next.Value
+				p.next()
+				next, ok := p.parseSelector()
+				if ok {
+					selector.Next = &next
+					break loop
+				}
+			}
+
+			id, ok := p.parseSelectorPart()
+			if !ok {
+				break loop
+			}
+			selector.Parts = append(selector.Parts, id)
+		}
+	}
+
+	return selector, true
+}
+
+func (p *Parser) parseSelectorPart() (SelectorPart, bool) {
+	next := p.peek()
+	part := SelectorPart{}
+	part.Loc.Start = p.span(next.Loc.Start)
+
+	switch next.Type {
+	case lexer.IDENT:
+		part.Type = TYPE_SELECTOR
+	case lexer.DOT:
+		p.next()
+		part.Type = CLASS_SELECTOR
+	case lexer.OCTOTHORPE:
+		p.next()
+		part.Type = ID_SELECTOR
+	case lexer.LBRACKET:
+		part.Type = ATTRIBUTE_SELECTOR
+	case lexer.COLON:
+		p.next()
+		part.Type = PSEUDO_SELECTOR
+	}
+
+	id, ok := p.parseIdentifier()
+
+	if !ok {
+		return part, false
+	}
+
+	part.Value = Value{
+		Loc:  id.Loc,
+		Type: IDENT,
+		Data: id,
+	}
+
+	part.Loc.End = id.Loc.End
+	return part, true
+}
+
+func (p *Parser) parseBlock(lSquirly lexer.Token) ([]RuleNode, Location) {
+	rules := p.parserRules()
+
+	rSquirly, ok := p.eat(lexer.RSQUIRLY)
+	if !ok {
+		return nil, Location{}
+	}
+
+	return rules, Location{
+		Start: p.span(lSquirly.Loc.Start),
+		End:   p.span(rSquirly.Loc.End),
+	}
 }
 
 func (p *Parser) parseIdentifier() (Identifier, bool) {
