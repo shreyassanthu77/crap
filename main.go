@@ -36,8 +36,72 @@ import (
 	important = "!important"
 */
 
+// String scanner
+type StrScanner struct {
+	input string
+	len   int
+	pos   int
+	line  int
+}
+
+func NewStrScanner(input string) *StrScanner {
+	return &StrScanner{
+		input: input,
+		len:   len(input),
+		pos:   0,
+		line:  1,
+	}
+}
+
+func (s *StrScanner) char(c byte) bool {
+	if s.pos >= s.len {
+		return false
+	}
+	if s.input[s.pos] == c {
+		s.pos++
+		return true
+	}
+	return false
+}
+
+func (s *StrScanner) charRange(start, end byte) bool {
+	if s.pos >= s.len {
+		return false
+	}
+	if s.input[s.pos] >= start && s.input[s.pos] <= end {
+		s.pos++
+		return true
+	}
+	return false
+}
+
+func (s *StrScanner) string(str string) bool {
+	if s.pos+len(str) > s.len {
+		return false
+	}
+	if s.input[s.pos:s.pos+len(str)] == str {
+		s.pos += len(str)
+		return true
+	}
+	return false
+}
+
+func (s *StrScanner) skipWhitespace() {
+	for {
+		ch := s.input[s.pos]
+		if ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' {
+			s.pos++
+			if ch == '\n' || (s.pos > 0 && ch == '\r' && s.input[s.pos+1] != '\n') {
+				s.line++
+			}
+		} else {
+			break
+		}
+	}
+}
+
+// Lexer
 const (
-	// Token types
 	TOK_EOF        = "EOF"
 	TOK_IDENTIFIER = "IDENTIFIER"
 	TOK_STRING     = "STRING"
@@ -82,6 +146,29 @@ const (
 	TOK_SEMICOLON = ";"
 	TOK_IMPORTANT = "!important"
 )
+
+type Token struct {
+	typ   string
+	value string
+}
+
+func (t *Token) String() string {
+	return fmt.Sprintf("%s(%s)", t.typ, t.value)
+}
+
+type Lexer struct {
+	scanner *StrScanner
+}
+
+func NewLexer(input string) *Lexer {
+	return &Lexer{
+		scanner: NewStrScanner(input),
+	}
+}
+
+func (l *Lexer) Next() (Token, error) {
+	panic("Not implemented")
+}
 
 func main() {
 	fmt.Println("Hello World!")
