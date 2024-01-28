@@ -9,7 +9,7 @@ import (
 
 	id = [a-zA-Z_][a-zA-Z0-9_]*
 	value = id | string | number | boolean | expression
-	string = '"' + .* + '"'
+	string = ('"' + .* + '"') | ("'" + .* + "'")
 	number = (# + [a-fA-F0-9]{3,6,8})
 		| ([0-9]* + (. + [0-9]+)?)
 	boolean = true | false
@@ -36,115 +36,51 @@ import (
 	important = "!important"
 */
 
-// String scanner
-type StrScanner struct {
-	input string
-	len   int
-	pos   int
-	line  int
-}
-
-func NewStrScanner(input string) *StrScanner {
-	return &StrScanner{
-		input: input,
-		len:   len(input),
-		pos:   0,
-		line:  1,
-	}
-}
-
-func (s *StrScanner) char(c byte) bool {
-	if s.pos >= s.len {
-		return false
-	}
-	if s.input[s.pos] == c {
-		s.pos++
-		return true
-	}
-	return false
-}
-
-func (s *StrScanner) charRange(start, end byte) bool {
-	if s.pos >= s.len {
-		return false
-	}
-	if s.input[s.pos] >= start && s.input[s.pos] <= end {
-		s.pos++
-		return true
-	}
-	return false
-}
-
-func (s *StrScanner) string(str string) bool {
-	if s.pos+len(str) > s.len {
-		return false
-	}
-	if s.input[s.pos:s.pos+len(str)] == str {
-		s.pos += len(str)
-		return true
-	}
-	return false
-}
-
-func (s *StrScanner) skipWhitespace() {
-	for {
-		ch := s.input[s.pos]
-		if ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' {
-			s.pos++
-			if ch == '\n' || (s.pos > 0 && ch == '\r' && s.input[s.pos+1] != '\n') {
-				s.line++
-			}
-		} else {
-			break
-		}
-	}
-}
-
 // Lexer
 const (
-	TOK_EOF        = "EOF"
+	EOF            = "EOF"
 	TOK_IDENTIFIER = "IDENTIFIER"
 	TOK_STRING     = "STRING"
 	TOK_NUMBER     = "NUMBER"
 	TOK_BOOLEAN    = "BOOLEAN"
 
 	// Unary operators
-	TOK_BANG  = "!"
-	TOK_TILDE = "~"
+	TOK_BANG  = "BANG"
+	TOK_TILDE = "TILDE"
 
 	// Binary operators
-	TOK_PLUS               = "+"
-	TOK_MINUS              = "-"
-	TOK_ASTERISK           = "*"
-	TOK_SLASH              = "/"
-	TOK_PERCENT            = "%"
-	TOK_CARET              = "^"
-	TOK_EQUAL              = "="
-	TOK_DOUBLE_EQUAL       = "=="
-	TOK_NOT_EQUAL          = "!="
-	TOK_GREATER_THAN       = ">"
-	TOK_GREATER_THAN_EQUAL = ">="
-	TOK_LESS_THAN          = "<"
-	TOK_LESS_THAN_EQUAL    = "<="
-	TOK_AND                = "&&"
-	TOK_OR                 = "||"
+	TOK_PLUS               = "PLUS"
+	TOK_MINUS              = "MINUS"
+	TOK_ASTERISK           = "ASTERISK"
+	TOK_SLASH              = "SLASH"
+	TOK_PERCENT            = "PERCENT"
+	TOK_CARET              = "CARET"
+	TOK_EQUAL              = "EQUAL"
+	TOK_DOUBLE_EQUAL       = "DOUBLE_EQUAL"
+	TOK_NOT_EQUAL          = "NOT_EQUAL"
+	TOK_GREATER_THAN       = "GREATER_THAN"
+	TOK_GREATER_THAN_EQUAL = "GREATER_THAN_EQUAL"
+	TOK_LESS_THAN          = "LESS_THAN"
+	TOK_LESS_THAN_EQUAL    = "LESS_THAN_EQUAL"
+	TOK_AND                = "AND"
+	TOK_OR                 = "OR"
 
 	// Expressions
-	TOK_LPAREN = "("
-	TOK_RPAREN = ")"
-	TOK_COMMA  = ","
+	TOK_LPAREN = "LPAREN"
+	TOK_RPAREN = "RPAREN"
+	TOK_COMMA  = "COMMA"
 
 	// Selectors
-	TOK_DOT  = "."
-	TOK_HASH = "#"
+	TOK_DOT  = "DOT"
+	TOK_HASH = "HASH"
 
 	// rules
-	TOK_AT        = "@"
-	TOK_LSQUIRLY  = "{"
-	TOK_RSQUIRLY  = "}"
-	TOK_COLON     = ":"
-	TOK_SEMICOLON = ";"
-	TOK_IMPORTANT = "!important"
+	TOK_AT        = "AT"
+	TOK_LSQUIRLY  = "LSQUIRLY"
+	TOK_RSQUIRLY  = "RSQUIRLY"
+	TOK_COLON     = "COLON"
+	TOK_SEMICOLON = "SEMICOLON"
+	TOK_IMPORTANT = "IMPORTANT"
 )
 
 type Token struct {
@@ -152,24 +88,200 @@ type Token struct {
 	value string
 }
 
-func (t *Token) String() string {
-	return fmt.Sprintf("%s(%s)", t.typ, t.value)
+func (t Token) String() string {
+	return fmt.Sprintf("TOK<%s>(%s)", t.typ, t.value)
 }
 
 type Lexer struct {
-	scanner *StrScanner
+	input string
+	pos   int
+	line  int
+	col   int
+	done  bool
 }
 
 func NewLexer(input string) *Lexer {
 	return &Lexer{
-		scanner: NewStrScanner(input),
+		input: input,
+		pos:   0,
+		line:  1,
+		col:   1,
+		done:  false,
 	}
 }
 
+func (l *Lexer) peek() string {
+	if l.done {
+		return EOF
+	}
+
+	if l.pos >= len(l.input) {
+		l.done = true
+		return EOF
+	}
+
+	return string(l.input[l.pos])
+}
+
+func (l *Lexer) next() string {
+	ch := l.peek()
+	if ch == EOF {
+		return EOF
+	}
+
+	l.pos++
+	l.col++
+
+	nextCh := l.peek()
+	if ch == "\n" || (ch == "\r" && nextCh != "\n") {
+		l.line++
+		l.col = 1
+	}
+
+	return ch
+}
+
+func (l *Lexer) skipWhitespace() {
+	if l.done {
+		return
+	}
+	for {
+		ch := l.peek()
+		if ch == EOF {
+			break
+		}
+
+		if ch != " " && ch != "\t" && ch != "\n" && ch != "\r" {
+			break
+		}
+
+		l.next()
+	}
+}
+
+func (l *Lexer) readString(quote string) (Token, error) {
+	if l.done {
+		return Token{}, fmt.Errorf("Unexpected EOF")
+	}
+
+	start := l.pos
+	for {
+		ch := l.next()
+		if ch == EOF {
+			return Token{}, fmt.Errorf("Unexpected EOF")
+		}
+
+		if ch == quote {
+			break
+		}
+	}
+
+	str := l.input[start : l.pos-1]
+	return Token{typ: TOK_STRING, value: str}, nil
+}
+
 func (l *Lexer) Next() (Token, error) {
+	l.skipWhitespace()
+	ch := l.next()
+
+	if ch == EOF {
+		return Token{typ: EOF}, nil
+	}
+	nextCh := l.peek()
+
+	switch ch {
+	case "!":
+		if nextCh == "=" {
+			l.next()
+			return Token{typ: TOK_NOT_EQUAL, value: ch + nextCh}, nil
+		}
+		return Token{typ: TOK_BANG, value: ch}, nil
+	case "~":
+		return Token{typ: TOK_TILDE, value: ch}, nil
+	case "+":
+		return Token{typ: TOK_PLUS, value: ch}, nil
+	case "-":
+		return Token{typ: TOK_MINUS, value: ch}, nil
+	case "*":
+		return Token{typ: TOK_ASTERISK, value: ch}, nil
+	case "/":
+		return Token{typ: TOK_SLASH, value: ch}, nil
+	case "%":
+		return Token{typ: TOK_PERCENT, value: ch}, nil
+	case "^":
+		return Token{typ: TOK_CARET, value: ch}, nil
+	case "=":
+		if nextCh == "=" {
+			l.next()
+			return Token{typ: TOK_DOUBLE_EQUAL, value: ch + nextCh}, nil
+		}
+		return Token{typ: TOK_EQUAL, value: ch}, nil
+	case ">":
+		if nextCh == "=" {
+			l.next()
+			return Token{typ: TOK_GREATER_THAN_EQUAL, value: ch + nextCh}, nil
+		}
+		return Token{typ: TOK_GREATER_THAN, value: ch}, nil
+	case "<":
+		if nextCh == "=" {
+			l.next()
+			return Token{typ: TOK_LESS_THAN_EQUAL, value: ch + nextCh}, nil
+		}
+		return Token{typ: TOK_LESS_THAN, value: ch}, nil
+	case "&":
+		if nextCh == "&" {
+			l.next()
+			return Token{typ: TOK_AND, value: ch + nextCh}, nil
+		}
+		return Token{}, fmt.Errorf("Unexpected character: %s", ch)
+	case "|":
+		if nextCh == "|" {
+			l.next()
+			return Token{typ: TOK_OR, value: ch + nextCh}, nil
+		}
+		return Token{}, fmt.Errorf("Unexpected character: %s", ch)
+	case "(":
+		return Token{typ: TOK_LPAREN, value: ch}, nil
+	case ")":
+		return Token{typ: TOK_RPAREN, value: ch}, nil
+	case ",":
+		return Token{typ: TOK_COMMA, value: ch}, nil
+	case ".":
+		return Token{typ: TOK_DOT, value: ch}, nil
+	case "#":
+		return Token{typ: TOK_HASH, value: ch}, nil
+	case "@":
+		return Token{typ: TOK_AT, value: ch}, nil
+	case "{":
+		return Token{typ: TOK_LSQUIRLY, value: ch}, nil
+	case "}":
+		return Token{typ: TOK_RSQUIRLY, value: ch}, nil
+	case ":":
+		return Token{typ: TOK_COLON, value: ch}, nil
+	case ";":
+		return Token{typ: TOK_SEMICOLON, value: ch}, nil
+	case "\"":
+		return l.readString(ch)
+	case "'":
+		return l.readString(ch)
+	}
+
 	panic("Not implemented")
 }
 
 func main() {
-	fmt.Println("Hello World!")
+	test := `
+		"hello" 'world'
+		! ~ + - * / % ^ = == != > >= < <= && ||
+		( ) , . #
+		@ { } : ;
+	`
+	lexer := NewLexer(test)
+	for !lexer.done {
+		tok, err := lexer.Next()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(tok)
+	}
 }
