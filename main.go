@@ -86,10 +86,13 @@ const (
 type Token struct {
 	typ   string
 	value string
+	pos   int
+	line  int
+	col   int
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("TOK<%s>(%s)", t.typ, t.value)
+	return fmt.Sprintf("{%d:%d} TOK<%s>(%s)", t.line, t.col, t.typ, t.value)
 }
 
 type Lexer struct {
@@ -108,6 +111,21 @@ func NewLexer(input string) *Lexer {
 		col:   1,
 		done:  false,
 	}
+}
+
+func (l *Lexer) tok(typ string, value string) Token {
+	return Token{
+		typ:   typ,
+		value: value,
+		pos:   l.pos,
+		line:  l.line,
+		col:   l.col - len(value) - 1,
+	}
+}
+
+func (l *Lexer) error(format string, args ...interface{}) error {
+	pre := fmt.Sprintf("{%d:%d} ", l.line, l.col)
+	return fmt.Errorf(pre+format, args...)
 }
 
 func (l *Lexer) peek() string {
@@ -133,9 +151,12 @@ func (l *Lexer) next() string {
 	l.col++
 
 	nextCh := l.peek()
-	if ch == "\n" || (ch == "\r" && nextCh != "\n") {
+	if ch == "\n" || ch == "\r" {
 		l.line++
 		l.col = 1
+		if ch == "\r" && nextCh == "\n" {
+			l.pos++
+		}
 	}
 
 	return ch
@@ -161,14 +182,14 @@ func (l *Lexer) skipWhitespace() {
 
 func (l *Lexer) readString(quote string) (Token, error) {
 	if l.done {
-		return Token{}, fmt.Errorf("Unexpected EOF")
+		return Token{}, l.error("Unexpected EOF")
 	}
 
 	start := l.pos
 	for {
 		ch := l.next()
 		if ch == EOF {
-			return Token{}, fmt.Errorf("Unexpected EOF")
+			return Token{}, l.error("Unexpected EOF")
 		}
 
 		if ch == quote {
@@ -177,7 +198,7 @@ func (l *Lexer) readString(quote string) (Token, error) {
 	}
 
 	str := l.input[start : l.pos-1]
-	return Token{typ: TOK_STRING, value: str}, nil
+	return l.tok(TOK_STRING, str), nil
 }
 
 func (l *Lexer) Next() (Token, error) {
@@ -185,7 +206,7 @@ func (l *Lexer) Next() (Token, error) {
 	ch := l.next()
 
 	if ch == EOF {
-		return Token{typ: EOF}, nil
+		return l.tok(EOF, ""), nil
 	}
 	nextCh := l.peek()
 
@@ -193,73 +214,73 @@ func (l *Lexer) Next() (Token, error) {
 	case "!":
 		if nextCh == "=" {
 			l.next()
-			return Token{typ: TOK_NOT_EQUAL, value: ch + nextCh}, nil
+			return l.tok(TOK_NOT_EQUAL, ch+nextCh), nil
 		}
-		return Token{typ: TOK_BANG, value: ch}, nil
+		return l.tok(TOK_BANG, ch), nil
 	case "~":
-		return Token{typ: TOK_TILDE, value: ch}, nil
+		return l.tok(TOK_TILDE, ch), nil
 	case "+":
-		return Token{typ: TOK_PLUS, value: ch}, nil
+		return l.tok(TOK_PLUS, ch), nil
 	case "-":
-		return Token{typ: TOK_MINUS, value: ch}, nil
+		return l.tok(TOK_MINUS, ch), nil
 	case "*":
-		return Token{typ: TOK_ASTERISK, value: ch}, nil
+		return l.tok(TOK_ASTERISK, ch), nil
 	case "/":
-		return Token{typ: TOK_SLASH, value: ch}, nil
+		return l.tok(TOK_SLASH, ch), nil
 	case "%":
-		return Token{typ: TOK_PERCENT, value: ch}, nil
+		return l.tok(TOK_PERCENT, ch), nil
 	case "^":
-		return Token{typ: TOK_CARET, value: ch}, nil
+		return l.tok(TOK_CARET, ch), nil
 	case "=":
 		if nextCh == "=" {
 			l.next()
-			return Token{typ: TOK_DOUBLE_EQUAL, value: ch + nextCh}, nil
+			return l.tok(TOK_DOUBLE_EQUAL, ch+nextCh), nil
 		}
-		return Token{typ: TOK_EQUAL, value: ch}, nil
+		return l.tok(TOK_EQUAL, ch), nil
 	case ">":
 		if nextCh == "=" {
 			l.next()
-			return Token{typ: TOK_GREATER_THAN_EQUAL, value: ch + nextCh}, nil
+			return l.tok(TOK_GREATER_THAN_EQUAL, ch+nextCh), nil
 		}
-		return Token{typ: TOK_GREATER_THAN, value: ch}, nil
+		return l.tok(TOK_GREATER_THAN, ch), nil
 	case "<":
 		if nextCh == "=" {
 			l.next()
-			return Token{typ: TOK_LESS_THAN_EQUAL, value: ch + nextCh}, nil
+			return l.tok(TOK_LESS_THAN_EQUAL, ch+nextCh), nil
 		}
-		return Token{typ: TOK_LESS_THAN, value: ch}, nil
+		return l.tok(TOK_LESS_THAN, ch), nil
 	case "&":
 		if nextCh == "&" {
 			l.next()
-			return Token{typ: TOK_AND, value: ch + nextCh}, nil
+			return l.tok(TOK_AND, ch+nextCh), nil
 		}
-		return Token{}, fmt.Errorf("Unexpected character: %s", ch)
+		return Token{}, l.error("Unexpected character: `&` did you mean `&&` ?")
 	case "|":
 		if nextCh == "|" {
 			l.next()
-			return Token{typ: TOK_OR, value: ch + nextCh}, nil
+			return l.tok(TOK_OR, ch+nextCh), nil
 		}
-		return Token{}, fmt.Errorf("Unexpected character: %s", ch)
+		return Token{}, l.error("Unexpected character: `|` did you mean `||` ?")
 	case "(":
-		return Token{typ: TOK_LPAREN, value: ch}, nil
+		return l.tok(TOK_LPAREN, ch), nil
 	case ")":
-		return Token{typ: TOK_RPAREN, value: ch}, nil
+		return l.tok(TOK_RPAREN, ch), nil
 	case ",":
-		return Token{typ: TOK_COMMA, value: ch}, nil
+		return l.tok(TOK_COMMA, ch), nil
 	case ".":
-		return Token{typ: TOK_DOT, value: ch}, nil
+		return l.tok(TOK_DOT, ch), nil
 	case "#":
-		return Token{typ: TOK_HASH, value: ch}, nil
+		return l.tok(TOK_HASH, ch), nil
 	case "@":
-		return Token{typ: TOK_AT, value: ch}, nil
+		return l.tok(TOK_AT, ch), nil
 	case "{":
-		return Token{typ: TOK_LSQUIRLY, value: ch}, nil
+		return l.tok(TOK_LSQUIRLY, ch), nil
 	case "}":
-		return Token{typ: TOK_RSQUIRLY, value: ch}, nil
+		return l.tok(TOK_RSQUIRLY, ch), nil
 	case ":":
-		return Token{typ: TOK_COLON, value: ch}, nil
+		return l.tok(TOK_COLON, ch), nil
 	case ";":
-		return Token{typ: TOK_SEMICOLON, value: ch}, nil
+		return l.tok(TOK_SEMICOLON, ch), nil
 	case "\"":
 		return l.readString(ch)
 	case "'":
@@ -271,17 +292,20 @@ func (l *Lexer) Next() (Token, error) {
 
 func main() {
 	test := `
-		"hello" 'world'
+"hello" 'world'
 		! ~ + - * / % ^ = == != > >= < <= && ||
 		( ) , . #
 		@ { } : ;
-	`
+`
 	lexer := NewLexer(test)
-	for !lexer.done {
+	for {
 		tok, err := lexer.Next()
 		if err != nil {
 			panic(err)
 		}
 		fmt.Println(tok)
+		if tok.typ == EOF {
+			break
+		}
 	}
 }
