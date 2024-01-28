@@ -42,7 +42,8 @@ const (
 	TOK_IDENTIFIER = "IDENTIFIER"
 	TOK_STRING     = "STRING"
 	TOK_NUMBER     = "NUMBER"
-	TOK_BOOLEAN    = "BOOLEAN"
+	TOK_TRUE       = "TRUE"
+	TOK_FALSE      = "FALSE"
 
 	// Unary operators
 	TOK_BANG  = "BANG"
@@ -201,6 +202,113 @@ func (l *Lexer) readString(quote string) (Token, error) {
 	return l.tok(TOK_STRING, str), nil
 }
 
+func isValidHex(ch string) bool {
+	return (ch >= "a" && ch <= "f") || (ch >= "A" && ch <= "F") || (ch >= "0" && ch <= "9")
+}
+
+func (l *Lexer) readHex() (Token, error) {
+	if l.done {
+		return Token{}, l.error("Unexpected EOF")
+	}
+
+	start := l.pos - 1 // -1 because we already read the `#`
+	for {
+		ch := l.next()
+		if ch == EOF {
+			return Token{}, l.error("Unexpected EOF")
+		}
+
+		if !isValidHex(ch) {
+			break
+		}
+	}
+
+	length := l.pos - start
+	if length != 4 && length != 7 && length != 9 {
+		l.pos = start // reset pos
+		return Token{}, l.error("Invalid hex value")
+	}
+
+	str := l.input[start : l.pos-1]
+	return l.tok(TOK_NUMBER, str), nil
+}
+
+func isValidIdentifierStart(ch string) bool {
+	return ch == "_" || (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z")
+}
+
+func isValidIdentifier(ch string) bool {
+	return isValidIdentifierStart(ch) || (ch >= "0" && ch <= "9") || ch == "-" || ch == "." || ch == "#"
+}
+
+func (l *Lexer) readIdentifier() (Token, error) {
+	if l.done {
+		return Token{}, l.error("Unexpected EOF")
+	}
+
+	start := l.pos - 1 // -1 because we already read the first char
+	for {
+		ch := l.peek()
+		if ch == EOF {
+			break
+		}
+
+		if !isValidIdentifier(ch) {
+			break
+		}
+
+		l.next()
+	}
+
+	id := l.input[start:l.pos]
+
+	switch id {
+	case "true":
+		return l.tok(TOK_TRUE, id), nil
+	case "false":
+		return l.tok(TOK_FALSE, id), nil
+	}
+
+	return l.tok(TOK_IDENTIFIER, id), nil
+}
+
+func isValidNumber(ch string) bool {
+	return (ch >= "0" && ch <= "9") || (ch >= "a" && ch <= "f") || (ch >= "A" && ch <= "F")
+}
+
+func (l *Lexer) readNumber(ch string) (Token, error) {
+	if l.done {
+		return Token{}, l.error("Unexpected EOF")
+	}
+
+	start := l.pos - 1 // -1 because we already read the first char
+	deci := ch == "."
+	for {
+		ch := l.peek()
+		if ch == EOF {
+			break
+		}
+
+		if ch == "." {
+			if deci {
+				l.error("Unexpected character: `.` after `.` in number is that a typo?")
+			}
+			deci = true
+			l.next()
+			continue
+		}
+
+		if !isValidNumber(ch) {
+			break
+		}
+
+		l.next()
+	}
+
+	id := l.input[start:l.pos]
+	return l.tok(TOK_NUMBER, id), nil
+}
+
 func (l *Lexer) Next() (Token, error) {
 	l.skipWhitespace()
 	ch := l.next()
@@ -268,8 +376,23 @@ func (l *Lexer) Next() (Token, error) {
 	case ",":
 		return l.tok(TOK_COMMA, ch), nil
 	case ".":
+		if isValidIdentifierStart(nextCh) {
+			return l.readIdentifier()
+		}
+		if isValidNumber(nextCh) {
+			return l.readNumber(nextCh)
+		}
 		return l.tok(TOK_DOT, ch), nil
 	case "#":
+		if isValidHex(nextCh) {
+			hex, err := l.readHex()
+			if err == nil {
+				return hex, nil
+			}
+		}
+		if isValidIdentifierStart(nextCh) {
+			return l.readIdentifier()
+		}
 		return l.tok(TOK_HASH, ch), nil
 	case "@":
 		return l.tok(TOK_AT, ch), nil
@@ -287,6 +410,14 @@ func (l *Lexer) Next() (Token, error) {
 		return l.readString(ch)
 	}
 
+	if isValidIdentifierStart(ch) {
+		return l.readIdentifier()
+	}
+
+	if isValidNumber(ch) {
+		return l.readNumber(ch)
+	}
+
 	panic("Not implemented")
 }
 
@@ -296,6 +427,12 @@ func main() {
 		! ~ + - * / % ^ = == != > >= < <= && ||
 		( ) , . #
 		@ { } : ;
+		_main__123
+		#id .class
+		#id.class
+		true false
+		!true ~false
+	 123 37.5 .22 #22
 `
 	lexer := NewLexer(test)
 	for {
