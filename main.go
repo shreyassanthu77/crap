@@ -12,8 +12,7 @@ import (
 
 	id = [a-zA-Z_][a-zA-Z0-9_]*
 	string = ('"' + .* + '"') | ("'" + .* + "'")
-	number = (# + [a-fA-F0-9]{3,6,8})
-		| ([0-9]* + (. + [0-9]+)?)
+	number = ([0-9]* + (. + [0-9]+)?)
 	boolean = true | false
 	value = string | number | boolean | function_call
 	unary_operator = ! | ~
@@ -298,11 +297,10 @@ func main() {
 	input := `{
 		a: 10;
 		b: "Hello World";
-		c: #fff;
 		d: true;
 		e: false;
 		f: foo();
-		g: foo(10, "hello", true, #fff, foo());
+		g: foo(10, "hello", true, foo());
 }`
 	lex := lexer.New(input)
 	parser := NewParser(lex)

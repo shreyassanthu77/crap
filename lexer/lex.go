@@ -108,37 +108,6 @@ func (l *Lexer) readString(quote string) (Token, error) {
 	return l.tok(TOK_STRING, str), nil
 }
 
-func isValidHex(ch string) bool {
-	return (ch >= "a" && ch <= "f") || (ch >= "A" && ch <= "F") || (ch >= "0" && ch <= "9")
-}
-
-func (l *Lexer) readHex() (Token, error) {
-	if l.done {
-		return Token{}, l.error("Unexpected EOF")
-	}
-
-	start := l.pos - 1 // -1 because we already read the `#`
-	for {
-		ch := l.next()
-		if ch == EOF {
-			return Token{}, l.error("Unexpected EOF")
-		}
-
-		if !isValidHex(ch) {
-			break
-		}
-	}
-
-	length := l.pos - start
-	if length != 4 && length != 7 && length != 9 {
-		l.pos = start // reset pos
-		return Token{}, l.error("Invalid hex value")
-	}
-
-	str := l.input[start : l.pos-1]
-	return l.tok(TOK_NUMBER, str), nil
-}
-
 func isValidIdentifierStart(ch string) bool {
 	return ch == "_" || (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z")
 }
@@ -290,12 +259,6 @@ func (l *Lexer) Next() (Token, error) {
 		}
 		return l.tok(TOK_DOT, ch), nil
 	case "#":
-		if isValidHex(nextCh) {
-			hex, err := l.readHex()
-			if err == nil {
-				return hex, nil
-			}
-		}
 		if isValidIdentifierStart(nextCh) {
 			return l.readIdentifier()
 		}
