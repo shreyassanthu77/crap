@@ -108,13 +108,23 @@ func (s String) String() string {
 	return fmt.Sprintf("'%s'", s.Value)
 }
 
-type Number struct {
+type Int struct {
+	Value int64
+}
+
+func (n Int) isValue() {}
+
+func (n Int) String() string {
+	return fmt.Sprintf("%d", n.Value)
+}
+
+type Float struct {
 	Value float64
 }
 
-func (n Number) isValue() {}
+func (n Float) isValue() {}
 
-func (n Number) String() string {
+func (n Float) String() string {
 	return fmt.Sprintf("%f", n.Value)
 }
 
@@ -146,12 +156,18 @@ func (p *Parser) parseValue() (Value, error) {
 		return Identifier{tok.Value}, nil
 	case lexer.TOK_STRING:
 		return String{tok.Value}, nil
-	case lexer.TOK_NUMBER:
+	case lexer.TOK_INT:
+		f, err := strconv.ParseInt(tok.Value, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse number: %s", err)
+		}
+		return Int{f}, nil
+	case lexer.TOK_FLOAT:
 		f, err := strconv.ParseFloat(tok.Value, 64)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to parse number: %s", err)
 		}
-		return Number{f}, nil
+		return Float{f}, nil
 	case lexer.TOK_TRUE:
 		return Boolean{true}, nil
 	case lexer.TOK_FALSE:
@@ -167,6 +183,10 @@ type FunctionCall struct {
 }
 
 func (f FunctionCall) isValue() {}
+
+func (f FunctionCall) String() string {
+	return fmt.Sprintf("Call(%s, %v)", f.Name, f.Parameters)
+}
 
 func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
 	_, err := p.expect(lexer.TOK_LPAREN)
@@ -300,7 +320,7 @@ func main() {
 		d: true;
 		e: false;
 		f: foo();
-		g: foo(10, "hello", true, foo());
+		g: foo(10, 34.35, "hello", true, foo());
 }`
 	lex := lexer.New(input)
 	parser := NewParser(lex)

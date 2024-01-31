@@ -181,7 +181,11 @@ func (l *Lexer) readNumber(ch string) (Token, error) {
 	}
 
 	id := l.input[start:l.pos]
-	return l.tok(TOK_NUMBER, id), nil
+
+	if deci {
+		return l.tok(TOK_FLOAT, id), nil
+	}
+	return l.tok(TOK_INT, id), nil
 }
 
 func (l *Lexer) Next() (Token, error) {

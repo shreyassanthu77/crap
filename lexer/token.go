@@ -6,7 +6,8 @@ const (
 	EOF            = "EOF"
 	TOK_IDENTIFIER = "IDENTIFIER"
 	TOK_STRING     = "STRING"
-	TOK_NUMBER     = "NUMBER"
+	TOK_INT        = "INT"
+	TOK_FLOAT      = "FLOAT"
 	TOK_TRUE       = "TRUE"
 	TOK_FALSE      = "FALSE"
 
