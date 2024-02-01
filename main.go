@@ -16,6 +16,10 @@ factorial[n] {
 	}
 	@return $n * factorial($n - 1);
 }
+
+main {
+	print: factorial(5);
+}
 	`
 	lex := lexer.New(input)
 	par := parser.New(lex)
