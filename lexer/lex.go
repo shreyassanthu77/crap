@@ -209,6 +209,9 @@ func (l *Lexer) Next() (Token, error) {
 	case "+":
 		return l.tok(TOK_PLUS, ch), nil
 	case "-":
+		if nextCh == "-" {
+			return l.readIdentifier()
+		}
 		return l.tok(TOK_MINUS, ch), nil
 	case "*":
 		return l.tok(TOK_ASTERISK, ch), nil
@@ -267,6 +270,10 @@ func (l *Lexer) Next() (Token, error) {
 			return l.readIdentifier()
 		}
 		return l.tok(TOK_HASH, ch), nil
+	case "[":
+		return l.tok(TOK_LBRACKET, ch), nil
+	case "]":
+		return l.tok(TOK_RBRACKET, ch), nil
 	case "@":
 		return l.tok(TOK_AT, ch), nil
 	case "{":

@@ -38,8 +38,10 @@ const (
 	TOK_COMMA  = "COMMA"
 
 	// Selectors
-	TOK_DOT  = "DOT"
-	TOK_HASH = "HASH"
+	TOK_DOT      = "DOT"
+	TOK_HASH     = "HASH"
+	TOK_LBRACKET = "LBRACKET"
+	TOK_RBRACKET = "RBRACKET"
 
 	// rules
 	TOK_AT        = "AT"
