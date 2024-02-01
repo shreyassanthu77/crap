@@ -86,6 +86,6 @@ factorial[n] {
 ## Progress
 
 - [x] Lexer
-- [-] Parser
+- [x] Parser
 - [ ] Interpreter
 - [ ] Compiler
