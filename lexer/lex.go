@@ -296,5 +296,5 @@ func (l *Lexer) Next() (Token, error) {
 		return l.readNumber(ch)
 	}
 
-	panic("Not implemented")
+	return Token{}, l.error("Unexpected character: `%s`", ch)
 }
