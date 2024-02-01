@@ -38,7 +38,7 @@ main {
         print: "Hello World!";
     }
 
-    nested: nil;
+    nested: ();
 }
 ```
 
@@ -46,7 +46,7 @@ main {
 - Function parameters can be declared as attributes on the selector.
 - The value of the attribute is the default value of the parameter.
 - If the parameter is not passed to the function the default value is used.
-
+- If you don't want to pass a parameter you can use `()` as the value.
 ```css
 someFunction[parameter=1] {
     print: $parameter;
@@ -54,7 +54,7 @@ someFunction[parameter=1] {
 
 main {
     someFunction: 2;
-    someFunction: nil;
+    someFunction: ();
 }
 ```
 prints:
@@ -86,19 +86,6 @@ factorial[n] {
 ## Progress
 
 - [x] Lexer
-- [ ] Parser
-    - [x] Selector
-    - [x] Declaration
-    - [x] Declaration Block
-    - [x] Rule
-    - [x] At Rule
-    - [x] Program
-    - [ ] Value
-        - [x] String
-        - [x] Number
-        - [x] Boolean
-        - [x] Function Call
-        - [ ] Unary Operator
-        - [ ] Expression
+- [-] Parser
 - [ ] Interpreter
 - [ ] Compiler
