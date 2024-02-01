@@ -67,7 +67,21 @@ func (p *Parser) parseUnaryExpression() (Value, error) {
 		return nil, err
 	}
 
-	if next.Typ == lexer.TOK_BANG || next.Typ == lexer.TOK_MINUS || next.Typ == lexer.TOK_PLUS {
+	if next.Typ == lexer.TOK_DOLLAR {
+		p.next() // Consume the operator
+		ident, err := p.expect(lexer.TOK_IDENTIFIER)
+		if err != nil {
+			return nil, err
+		}
+		return VarianleDerefValue{
+			Variable: Identifier{Name: ident.Value},
+		}, nil
+	}
+
+	if next.Typ == lexer.TOK_BANG ||
+		next.Typ == lexer.TOK_MINUS ||
+		next.Typ == lexer.TOK_PLUS ||
+		next.Typ == lexer.TOK_TILDE {
 		p.next() // Consume the operator
 		val, err := p.parseLiteralVal()
 		if err != nil {

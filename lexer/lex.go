@@ -113,7 +113,7 @@ func isValidIdentifierStart(ch string) bool {
 }
 
 func isValidIdentifier(ch string) bool {
-	return isValidIdentifierStart(ch) || (ch >= "0" && ch <= "9") || ch == "-" || ch == "." || ch == "#" || ch == "$"
+	return isValidIdentifierStart(ch) || (ch >= "0" && ch <= "9") || ch == "-" || ch == "." || ch == "#"
 }
 
 func (l *Lexer) readIdentifier() (Token, error) {
@@ -252,11 +252,7 @@ func (l *Lexer) Next() (Token, error) {
 		}
 		return Token{}, l.error("Unexpected character: `|` did you mean `||` ?")
 	case "$":
-		if isValidIdentifierStart(nextCh) {
-			return l.readIdentifier()
-		}
-		return Token{}, l.error("Unexpected character: `$`")
-
+		return l.tok(TOK_DOLLAR, ch), nil
 	case "(":
 		if nextCh == ")" {
 			l.next()

@@ -64,6 +64,16 @@ func (b Boolean) String() string {
 	return fmt.Sprintf("Bool(%t)", b.Value)
 }
 
+type VarianleDerefValue struct {
+	Variable Identifier
+}
+
+func (v VarianleDerefValue) isValue() {}
+
+func (v VarianleDerefValue) String() string {
+	return fmt.Sprintf("var(%s)", v.Variable.Name)
+}
+
 type Statement interface {
 	isStatement()
 }
