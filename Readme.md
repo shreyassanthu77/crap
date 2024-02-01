@@ -75,7 +75,7 @@ main {
 ### Factorial
 ```css
 factorial[n] {
-    @if expr($n == 0) {
+    @if $n == 0 || $n == 1 {
         @return 1;
     }
 
