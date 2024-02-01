@@ -34,12 +34,12 @@ func (p *Parser) parseSelector(ident Identifier) (Selector, error) {
 
 	return Selector{
 		Identifier: ident,
-		Atrributes: map[Identifier]Value{},
+		Atrributes: nil,
 	}, nil
 }
 
-func (p *Parser) parseAttributes() (map[Identifier]Value, error) {
-	attrs := map[Identifier]Value{}
+func (p *Parser) parseAttributes() ([]Attreibute, error) {
+	attrs := []Attreibute{}
 
 	for {
 		next, err := p.peek()
@@ -62,18 +62,20 @@ func (p *Parser) parseAttributes() (map[Identifier]Value, error) {
 			return nil, err
 		}
 
+		attr := Attreibute{
+			Name:    Identifier{Name: id.Value},
+			Default: NilValue{},
+		}
+
 		if next.Typ == lexer.TOK_EQUAL {
 			p.next() // Consume '='
-			val, err := p.parseValue()
+			val, err := p.parseLiteralVal()
 			if err != nil {
 				return nil, err
 			}
 
-			attrs[Identifier{Name: id.Value}] = val
-		} else {
-			attrs[Identifier{Name: id.Value}] = NilValue{}
+			attr.Default = val
 		}
-
 		_, err = p.expect(lexer.TOK_RBRACKET)
 		if err != nil {
 			return nil, err

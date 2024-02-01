@@ -20,7 +20,7 @@ func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
 	if next.Typ == lexer.TOK_RPAREN {
 		p.next()
 		return FunctionCall{
-			Name:       name,
+			Fn:         name,
 			Parameters: params,
 		}, nil
 	}
@@ -50,7 +50,7 @@ func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
 	}
 
 	return FunctionCall{
-		Name:       name,
+		Fn:         name,
 		Parameters: params,
 	}, nil
 }

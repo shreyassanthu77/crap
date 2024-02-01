@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+
 	"github.com/shreyassanthu77/cisp/lexer"
 	"github.com/shreyassanthu77/cisp/parser"
 )
@@ -9,11 +11,11 @@ import (
 func main() {
 	input := `
 factorial[n] {
-    @if expr($n) {
-        @return 1;
-    }
-		@return $n * factorial($n - 1);
+	@if n == 1 {
+			@return 1;
 	}
+	@return $n * factorial($n - 1);
+}
 	`
 	lex := lexer.New(input)
 	par := parser.New(lex)
@@ -24,5 +26,6 @@ factorial[n] {
 		return
 	}
 
-	fmt.Printf("%+v\n", ast)
+	jsoned, err := json.MarshalIndent(ast, "", "  ")
+	fmt.Println(string(jsoned))
 }

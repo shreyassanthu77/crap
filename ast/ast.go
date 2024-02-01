@@ -86,14 +86,14 @@ type Declaration struct {
 func (d Declaration) isStatement() {}
 
 type FunctionCall struct {
-	Name       string
+	Fn         string
 	Parameters []Value
 }
 
 func (f FunctionCall) isValue() {}
 
 func (f FunctionCall) String() string {
-	return fmt.Sprintf("Call(%s, %v)", f.Name, f.Parameters)
+	return fmt.Sprintf("Call(%s, %v)", f.Fn, f.Parameters)
 }
 
 type UnaryOp struct {
@@ -121,9 +121,14 @@ func (r AtRule) isRule() {}
 
 func (r AtRule) isStatement() {}
 
+type Attreibute struct {
+	Name    Identifier
+	Default Value
+}
+
 type Selector struct {
 	Identifier Identifier
-	Atrributes map[Identifier]Value
+	Atrributes []Attreibute
 }
 
 type IRule interface {

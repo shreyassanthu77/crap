@@ -58,6 +58,7 @@ func (p *Parser) parseLiteralVal() (Value, error) {
 		return val, nil
 	}
 
+	fmt.Println(tok)
 	panic("Unreachable")
 }
 
@@ -229,6 +230,72 @@ func (p *Parser) parseEqualityExpr() (Value, error) {
 	return left, nil
 }
 
+func (p *Parser) parseLogicalAndExpr() (Value, error) {
+	left, err := p.parseEqualityExpr()
+	if err != nil {
+		return BinaryOp{}, err
+	}
+
+	for {
+		next, err := p.peek()
+		if err != nil {
+			return BinaryOp{}, err
+		}
+
+		if next.Typ != lexer.TOK_AND {
+			break
+		}
+
+		p.next() // Consume the operator
+
+		right, err := p.parseEqualityExpr()
+		if err != nil {
+			return BinaryOp{}, err
+		}
+
+		left = BinaryOp{
+			Left:  left,
+			Op:    next.Value,
+			Right: right,
+		}
+	}
+
+	return left, nil
+}
+
+func (p *Parser) parseLogicalOrExpr() (Value, error) {
+	left, err := p.parseLogicalAndExpr()
+	if err != nil {
+		return BinaryOp{}, err
+	}
+
+	for {
+		next, err := p.peek()
+		if err != nil {
+			return BinaryOp{}, err
+		}
+
+		if next.Typ != lexer.TOK_OR {
+			break
+		}
+
+		p.next() // Consume the operator
+
+		right, err := p.parseLogicalAndExpr()
+		if err != nil {
+			return BinaryOp{}, err
+		}
+
+		left = BinaryOp{
+			Left:  left,
+			Op:    next.Value,
+			Right: right,
+		}
+	}
+
+	return left, nil
+}
+
 func (p *Parser) parseValue() (Value, error) {
-	return p.parseEqualityExpr()
+	return p.parseLogicalOrExpr()
 }
