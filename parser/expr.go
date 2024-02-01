@@ -58,7 +58,7 @@ func (p *Parser) parseLiteralVal() (Value, error) {
 		return val, nil
 	}
 
-	panic("Unimplemented")
+	panic("Unreachable")
 }
 
 func (p *Parser) parseUnaryExpression() (Value, error) {
