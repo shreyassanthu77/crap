@@ -40,18 +40,17 @@ func main() {
 		}
 	}
 	@hello world2;
-
 	hello {
 		foo: bar;
 	}`
 	lex := lexer.New(input)
 	par := parser.New(lex)
 
-	decl, err := par.Parse()
+	ast, err := par.Parse()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Printf("%+v\n", decl)
+	fmt.Printf("%+v\n", ast)
 }

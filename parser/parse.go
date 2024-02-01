@@ -381,16 +381,28 @@ func (p *Parser) parseAtRule() (AtRule, error) {
 	}, nil
 }
 
-func (p *Parser) Parse() ([]IRule, error) {
+func (p *Parser) Parse() (Program, error) {
 	rules := []IRule{}
 	var lastErr error
+outer:
 	for {
 		next, err := p.peek()
-		if err != nil {
-			return nil, err
-		}
 
-		if next.Typ == lexer.EOF {
+		// Skip semicolons
+		for {
+			if err != nil {
+				return Program{}, err
+			}
+
+			if next.Typ == lexer.EOF {
+				break outer
+			}
+
+			if next.Typ == lexer.TOK_SEMICOLON {
+				p.next()
+				next, err = p.peek()
+				continue
+			}
 			break
 		}
 
@@ -412,7 +424,9 @@ func (p *Parser) Parse() ([]IRule, error) {
 	}
 
 	if lastErr != nil {
-		return nil, lastErr
+		return Program{}, lastErr
 	}
-	return rules, nil
+	return Program{
+		Rules: rules,
+	}, nil
 }

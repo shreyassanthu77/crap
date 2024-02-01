@@ -113,3 +113,7 @@ type Rule struct {
 func (r Rule) isRule() {}
 
 func (r Rule) isStatement() {}
+
+type Program struct {
+	Rules []IRule
+}
