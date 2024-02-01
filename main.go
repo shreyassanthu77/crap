@@ -458,22 +458,119 @@ func (p *Parser) parseRule() (Rule, error) {
 	return p.parseNestedRule(Identifier{id.Value})
 }
 
-func (p *Parser) Parse() error {
-	panic("Unimplemented")
+type AtRule struct {
+	Name       Identifier
+	Params     []Value
+	Statements []Statement
+}
+
+func (r AtRule) isRule() {}
+
+func (r AtRule) isStatement() {}
+
+func (p *Parser) parseAtRule() (AtRule, error) {
+	p.next() // Consume '@'
+
+	params := []Value{}
+	for {
+		next, err := p.peek()
+		if err != nil {
+			return AtRule{}, err
+		}
+
+		if next.Typ == lexer.TOK_LSQUIRLY || next.Typ == lexer.TOK_SEMICOLON {
+			break
+		}
+
+		param, err := p.parseValue()
+		if err != nil {
+			return AtRule{}, err
+		}
+
+		params = append(params, param)
+	}
+
+	next, err := p.peek()
+	if err != nil {
+		return AtRule{}, err
+	}
+
+	if next.Typ == lexer.TOK_LSQUIRLY {
+		decls, err := p.parseDeclarationBlock()
+		if err != nil {
+			return AtRule{}, err
+		}
+
+		return AtRule{
+			Name:       Identifier{next.Value},
+			Params:     params,
+			Statements: decls,
+		}, nil
+	}
+
+	_, err = p.expect(lexer.TOK_SEMICOLON)
+	if err != nil {
+		return AtRule{}, err
+	}
+
+	return AtRule{
+		Name:   Identifier{next.Value},
+		Params: params,
+	}, nil
+}
+
+func (p *Parser) Parse() ([]IRule, error) {
+	rules := []IRule{}
+	var lastErr error
+	for {
+		next, err := p.peek()
+		if err != nil {
+			return nil, err
+		}
+
+		if next.Typ == lexer.EOF {
+			break
+		}
+
+		if next.Typ == lexer.TOK_AT {
+			atRule, err := p.parseAtRule()
+			if err != nil {
+				lastErr = err
+				break
+			}
+			rules = append(rules, atRule)
+		} else {
+			rule, err := p.parseRule()
+			if err != nil {
+				lastErr = err
+				break
+			}
+			rules = append(rules, rule)
+		}
+	}
+
+	if lastErr != nil {
+		return nil, lastErr
+	}
+
+	return rules, nil
 }
 
 func main() {
-	input := `hi[a="/"] {
-		--a: 10;
-		a: 10;
-		nested {
-			a: 10;
+	input := `@hello world {
+			hi {
+				foo: bar;
 		}
+	}
+	@hello world2;
+
+	hello {
+		foo: bar;
 	}`
 	lex := lexer.New(input)
 	parser := NewParser(lex)
 
-	decl, err := parser.parseRule()
+	decl, err := parser.Parse()
 	if err != nil {
 		fmt.Println(err)
 		return
