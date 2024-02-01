@@ -24,9 +24,7 @@ import (
 	function_call = id + '(' + function_parameters + ')'
 	function_parameters = expression + (, + expression)* + (,)*
 
-	selector = (. | #)? + id + ([id=value])*
-		+ (selector_delimiter + selector)*
-	selector_delimiter = (> | + | ~)
+	selector = (. | #)? + id + ([id=value])* + (, + selector)*
 
 	at_rule = @ + id + expression + (delcaration_block | ;)
 	rule = (selector + declaration_block) | at_rule
@@ -86,6 +84,14 @@ func (p *Parser) expect(typ string) (lexer.Token, error) {
 
 type Value interface {
 	isValue()
+}
+
+type NilValue struct{}
+
+func (n NilValue) isValue() {}
+
+func (n NilValue) String() string {
+	return "Nil"
 }
 
 type Identifier struct {
@@ -238,20 +244,23 @@ func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
 	}, nil
 }
 
+type Statement interface {
+	isStatement()
+}
+
 type Declaration struct {
 	Property Identifier
 	Val      Value
 }
 
-func (p *Parser) parseDeclaration() (Declaration, error) {
-	id, err := p.expect(lexer.TOK_IDENTIFIER)
-	if err != nil {
-		return Declaration{}, err
-	}
+func (d Declaration) isStatement() {}
 
-	_, err = p.expect(lexer.TOK_COLON)
+func (p *Parser) parseDeclarationStmt(id Identifier) (Declaration, error) {
+	_, err := p.expect(lexer.TOK_COLON)
 	if err != nil {
-		return Declaration{}, err
+		return Declaration{
+			Property: id,
+		}, err
 	}
 
 	value, err := p.parseValue()
@@ -265,18 +274,36 @@ func (p *Parser) parseDeclaration() (Declaration, error) {
 	}
 
 	return Declaration{
-		Property: Identifier{id.Value},
+		Property: id,
 		Val:      value,
 	}, nil
 }
 
-func (p *Parser) parseDeclarationBlock() ([]Declaration, error) {
+func (p *Parser) parseStatement() (Statement, error) {
+	id, err := p.expect(lexer.TOK_IDENTIFIER)
+	if err != nil {
+		return nil, err
+	}
+
+	next, err := p.peek()
+	if err != nil {
+		return nil, err
+	}
+
+	if next.Typ == lexer.TOK_COLON {
+		return p.parseDeclarationStmt(Identifier{id.Value})
+	}
+
+	return p.parseNestedRule(Identifier{id.Value})
+}
+
+func (p *Parser) parseDeclarationBlock() ([]Statement, error) {
 	_, err := p.expect(lexer.TOK_LSQUIRLY)
 	if err != nil {
 		return nil, err
 	}
 
-	decls := []Declaration{}
+	stmts := []Statement{}
 	var lastErr error
 	for {
 		next, err := p.peek()
@@ -288,13 +315,13 @@ func (p *Parser) parseDeclarationBlock() ([]Declaration, error) {
 			break
 		}
 
-		decl, err := p.parseDeclaration()
+		stmt, err := p.parseStatement()
 		if err != nil {
 			lastErr = err
 			break
 		}
 
-		decls = append(decls, decl)
+		stmts = append(stmts, stmt)
 	}
 
 	if lastErr != nil {
@@ -306,7 +333,129 @@ func (p *Parser) parseDeclarationBlock() ([]Declaration, error) {
 		return nil, err
 	}
 
-	return decls, nil
+	return stmts, nil
+}
+
+type Selector struct {
+	Identifier Identifier
+	Atrributes map[Identifier]Value
+}
+
+func (p *Parser) parseSelector(ident Identifier) (Selector, error) {
+	next, err := p.peek()
+	if err != nil {
+		return Selector{}, err
+	}
+
+	if next.Typ == lexer.TOK_LBRACKET {
+		attr, err := p.parseAttributes()
+		if err != nil {
+			return Selector{}, err
+		}
+
+		return Selector{
+			Identifier: ident,
+			Atrributes: attr,
+		}, nil
+	}
+
+	next, err = p.peek()
+	if err != nil {
+		return Selector{}, err
+	}
+
+	if next.Typ == lexer.TOK_IDENTIFIER {
+		panic("Complex selectors not implemented")
+	}
+
+	return Selector{
+		Identifier: ident,
+		Atrributes: map[Identifier]Value{},
+	}, nil
+}
+
+func (p *Parser) parseAttributes() (map[Identifier]Value, error) {
+	attrs := map[Identifier]Value{}
+
+	for {
+		next, err := p.peek()
+		if err != nil {
+			return nil, err
+		}
+
+		if next.Typ != lexer.TOK_LBRACKET {
+			break
+		}
+
+		p.next() // Consume '['
+		id, err := p.expect(lexer.TOK_IDENTIFIER)
+		if err != nil {
+			return nil, err
+		}
+
+		next, err = p.peek()
+		if err != nil {
+			return nil, err
+		}
+
+		if next.Typ == lexer.TOK_EQUAL {
+			p.next() // Consume '='
+			val, err := p.parseValue()
+			if err != nil {
+				return nil, err
+			}
+
+			attrs[Identifier{id.Value}] = val
+		} else {
+			attrs[Identifier{id.Value}] = NilValue{}
+		}
+
+		_, err = p.expect(lexer.TOK_RBRACKET)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return attrs, nil
+}
+
+type IRule interface {
+	isRule()
+}
+
+type Rule struct {
+	Selector   Selector
+	Statements []Statement
+}
+
+func (r Rule) isRule() {}
+
+func (r Rule) isStatement() {}
+
+func (p *Parser) parseNestedRule(id Identifier) (Rule, error) {
+	selector, err := p.parseSelector(id)
+	if err != nil {
+		return Rule{}, err
+	}
+
+	decls, err := p.parseDeclarationBlock()
+	if err != nil {
+		return Rule{}, err
+	}
+
+	return Rule{
+		Selector:   selector,
+		Statements: decls,
+	}, nil
+}
+
+func (p *Parser) parseRule() (Rule, error) {
+	id, err := p.expect(lexer.TOK_IDENTIFIER)
+	if err != nil {
+		return Rule{}, err
+	}
+
+	return p.parseNestedRule(Identifier{id.Value})
 }
 
 func (p *Parser) Parse() error {
@@ -314,18 +463,17 @@ func (p *Parser) Parse() error {
 }
 
 func main() {
-	input := `{
+	input := `hi[a="/"] {
+		--a: 10;
 		a: 10;
-		b: "Hello World";
-		d: true;
-		e: false;
-		f: foo();
-		g: foo(10, 34.35, "hello", true, foo());
-}`
+		nested {
+			a: 10;
+		}
+	}`
 	lex := lexer.New(input)
 	parser := NewParser(lex)
 
-	decl, err := parser.parseDeclarationBlock()
+	decl, err := parser.parseRule()
 	if err != nil {
 		fmt.Println(err)
 		return
