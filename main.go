@@ -12,7 +12,7 @@ factorial[n] {
     @if expr($n) {
         @return 1;
     }
-		add: 1 2 3;
+		@return $n * factorial($n - 1);
 	}
 	`
 	lex := lexer.New(input)
