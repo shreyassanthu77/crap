@@ -142,6 +142,7 @@ func (p *Parser) parseValue() (Value, error) {
 		return Boolean{Value: false}, nil
 	}
 
+	fmt.Println(tok)
 	panic("Unimplemented")
 }
 
@@ -170,12 +171,21 @@ func (p *Parser) parseDeclarationStmt(id Identifier) (Declaration, error) {
 }
 
 func (p *Parser) parseStatement() (Statement, error) {
+	next, err := p.peek()
+	if err != nil {
+		return nil, err
+	}
+
+	if next.Typ == lexer.TOK_AT {
+		return p.parseAtRule()
+	}
+
 	id, err := p.expect(lexer.TOK_IDENTIFIER)
 	if err != nil {
 		return nil, err
 	}
 
-	next, err := p.peek()
+	next, err = p.peek()
 	if err != nil {
 		return nil, err
 	}
@@ -332,6 +342,10 @@ func (p *Parser) parseRule() (Rule, error) {
 
 func (p *Parser) parseAtRule() (AtRule, error) {
 	p.next() // Consume '@'
+	name, err := p.expect(lexer.TOK_IDENTIFIER)
+	if err != nil {
+		return AtRule{}, err
+	}
 
 	params := []Value{}
 	for {
@@ -364,7 +378,7 @@ func (p *Parser) parseAtRule() (AtRule, error) {
 		}
 
 		return AtRule{
-			Name:       Identifier{Name: next.Value},
+			Name:       Identifier{Name: name.Value},
 			Params:     params,
 			Statements: decls,
 		}, nil
@@ -376,7 +390,7 @@ func (p *Parser) parseAtRule() (AtRule, error) {
 	}
 
 	return AtRule{
-		Name:   Identifier{Name: next.Value},
+		Name:   Identifier{Name: name.Value},
 		Params: params,
 	}, nil
 }

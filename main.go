@@ -7,15 +7,14 @@ import (
 )
 
 func main() {
-	input := `@hello world {
-			hi {
-				foo: bar;
-		}
-	}
-	@hello world2;
-	hello {
-		foo: bar;
-	}`
+	input := `
+factorial[n] {
+    @if expr($n) {
+        @return 1;
+    }
+
+}
+	`
 	lex := lexer.New(input)
 	par := parser.New(lex)
 

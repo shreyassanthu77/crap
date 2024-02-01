@@ -31,6 +31,7 @@ const (
 	TOK_LESS_THAN_EQUAL    = "LESS_THAN_EQUAL"
 	TOK_AND                = "AND"
 	TOK_OR                 = "OR"
+	TOK_DOLLAR             = "DOLLAR"
 
 	// Expressions
 	TOK_LPAREN = "LPAREN"
