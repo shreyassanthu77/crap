@@ -36,6 +36,7 @@ const (
 	// Expressions
 	TOK_LPAREN = "LPAREN"
 	TOK_RPAREN = "RPAREN"
+	TOK_EMPTY  = "EMPTY" // empty tuple `()`
 	TOK_COMMA  = "COMMA"
 
 	// Selectors

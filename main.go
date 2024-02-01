@@ -12,8 +12,8 @@ factorial[n] {
     @if expr($n) {
         @return 1;
     }
-
-}
+		add: 1 2 3;
+	}
 	`
 	lex := lexer.New(input)
 	par := parser.New(lex)

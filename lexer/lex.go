@@ -258,6 +258,10 @@ func (l *Lexer) Next() (Token, error) {
 		return Token{}, l.error("Unexpected character: `$`")
 
 	case "(":
+		if nextCh == ")" {
+			l.next()
+			return l.tok(TOK_EMPTY, "()"), nil
+		}
 		return l.tok(TOK_LPAREN, ch), nil
 	case ")":
 		return l.tok(TOK_RPAREN, ch), nil

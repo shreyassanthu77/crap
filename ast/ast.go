@@ -70,7 +70,7 @@ type Statement interface {
 
 type Declaration struct {
 	Property Identifier
-	Val      Value
+	Values   []Value
 }
 
 func (d Declaration) isStatement() {}
@@ -85,6 +85,21 @@ func (f FunctionCall) isValue() {}
 func (f FunctionCall) String() string {
 	return fmt.Sprintf("Call(%s, %v)", f.Name, f.Parameters)
 }
+
+type UnaryOp struct {
+	Op    string
+	Value Value
+}
+
+func (u UnaryOp) isValue() {}
+
+type BinaryOp struct {
+	Left  Value
+	Op    string
+	Right Value
+}
+
+func (b BinaryOp) isValue() {}
 
 type AtRule struct {
 	Name       Identifier
