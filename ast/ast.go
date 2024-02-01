@@ -79,14 +79,14 @@ type Statement interface {
 }
 
 type Declaration struct {
-	Property Identifier
-	Values   []Value
+	Property   Identifier
+	Parameters []Value
 }
 
 func (d Declaration) isStatement() {}
 
 type FunctionCall struct {
-	Fn         string
+	Fn         Identifier
 	Parameters []Value
 }
 
@@ -112,9 +112,9 @@ type BinaryOp struct {
 func (b BinaryOp) isValue() {}
 
 type AtRule struct {
-	Name       Identifier
-	Params     []Value
-	Statements []Statement
+	Name       string
+	Parameters []Value
+	Body       []Statement
 }
 
 func (r AtRule) isRule() {}
@@ -136,8 +136,8 @@ type IRule interface {
 }
 
 type Rule struct {
-	Selector   Selector
-	Statements []Statement
+	Selector Selector
+	Body     []Statement
 }
 
 func (r Rule) isRule() {}

@@ -20,7 +20,7 @@ func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
 	if next.Typ == lexer.TOK_RPAREN {
 		p.next()
 		return FunctionCall{
-			Fn:         name,
+			Fn:         Identifier{Name: name},
 			Parameters: params,
 		}, nil
 	}
@@ -50,7 +50,7 @@ func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
 	}
 
 	return FunctionCall{
-		Fn:         name,
+		Fn:         Identifier{Name: name},
 		Parameters: params,
 	}, nil
 }
@@ -88,8 +88,8 @@ func (p *Parser) parseDeclarationStmt(id Identifier) (Declaration, error) {
 	}
 
 	return Declaration{
-		Property: id,
-		Values:   values,
+		Property:   id,
+		Parameters: values,
 	}, nil
 }
 
@@ -171,8 +171,8 @@ func (p *Parser) parseNestedRule(id Identifier) (Rule, error) {
 	}
 
 	return Rule{
-		Selector:   selector,
-		Statements: decls,
+		Selector: selector,
+		Body:     decls,
 	}, nil
 }
 
@@ -223,9 +223,9 @@ func (p *Parser) parseAtRule() (AtRule, error) {
 		}
 
 		return AtRule{
-			Name:       Identifier{Name: name.Value},
-			Params:     params,
-			Statements: decls,
+			Name:       name.Value,
+			Parameters: params,
+			Body:       decls,
 		}, nil
 	}
 
@@ -235,7 +235,7 @@ func (p *Parser) parseAtRule() (AtRule, error) {
 	}
 
 	return AtRule{
-		Name:   Identifier{Name: name.Value},
-		Params: params,
+		Name:       name.Value,
+		Parameters: params,
 	}, nil
 }
