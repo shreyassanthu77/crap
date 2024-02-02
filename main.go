@@ -23,7 +23,8 @@ customPrint[var] {
 
 main {
 	--msg: "Hello, World!";
-	customPrint: $msg;
+	print: 1 + 2*3 - 4 / 2;
+	customPrint: $msg + " " + "This is a test";
 }
 	`
 	lex := lexer.New(input)
