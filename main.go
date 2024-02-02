@@ -10,26 +10,17 @@ import (
 
 func main() {
 	input := `
-
-ex[n] {
-	@return $n;
-}
-
-factorial[n] {
-	@if $n == 0 || $n == 1 {
-			--result: 1;
-			@return $result;
-	} @else {
-		print: "else block";
+fiboncci[n][a=0][b=1] {
+	@if $n == 0 {
+		@return $a;
 	}
-	@return $n * factorial($n - 1);
+	print: $a;
+	@return fiboncci($n - 1, $b, $a + $b);
 }
 
 main {
-	--result: factorial(5);
-	@return $result;
-}
-	`
+	fiboncci: 10 () ();
+}`
 	lex := lexer.New(input)
 	par := parser.New(lex)
 

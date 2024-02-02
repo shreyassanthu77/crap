@@ -97,6 +97,50 @@ func evalEq(left, right ast.Value, leftType ValueType) (ast.Value, error) {
 	}
 }
 
+func evalLt(left, right ast.Value, leftType ValueType) (ast.Value, error) {
+	switch leftType {
+	case val_type_int:
+		return ast.Boolean{Value: left.(ast.Int).Value < right.(ast.Int).Value}, nil
+	case val_type_float:
+		return ast.Boolean{Value: left.(ast.Float).Value < right.(ast.Float).Value}, nil
+	default:
+		return ast.NilValue{}, fmt.Errorf("invalid types for less than: %T and %T", left, right)
+	}
+}
+
+func evalLe(left, right ast.Value, leftType ValueType) (ast.Value, error) {
+	switch leftType {
+	case val_type_int:
+		return ast.Boolean{Value: left.(ast.Int).Value <= right.(ast.Int).Value}, nil
+	case val_type_float:
+		return ast.Boolean{Value: left.(ast.Float).Value <= right.(ast.Float).Value}, nil
+	default:
+		return ast.NilValue{}, fmt.Errorf("invalid types for less than or equal: %T and %T", left, right)
+	}
+}
+
+func evalGt(left, right ast.Value, leftType ValueType) (ast.Value, error) {
+	switch leftType {
+	case val_type_int:
+		return ast.Boolean{Value: left.(ast.Int).Value > right.(ast.Int).Value}, nil
+	case val_type_float:
+		return ast.Boolean{Value: left.(ast.Float).Value > right.(ast.Float).Value}, nil
+	default:
+		return ast.NilValue{}, fmt.Errorf("invalid types for greater than: %T and %T", left, right)
+	}
+}
+
+func evalGe(left, right ast.Value, leftType ValueType) (ast.Value, error) {
+	switch leftType {
+	case val_type_int:
+		return ast.Boolean{Value: left.(ast.Int).Value >= right.(ast.Int).Value}, nil
+	case val_type_float:
+		return ast.Boolean{Value: left.(ast.Float).Value >= right.(ast.Float).Value}, nil
+	default:
+		return ast.NilValue{}, fmt.Errorf("invalid types for greater than or equal: %T and %T", left, right)
+	}
+}
+
 func evalAnd(left, right ast.Value) (ast.Value, error) {
 	return ast.Boolean{Value: left.(ast.Boolean).Value && right.(ast.Boolean).Value}, nil
 }
@@ -144,6 +188,14 @@ func evalBinaryOp(op ast.BinaryOp, env *Environment) (ast.Value, error) {
 		return evalMul(left, right, leftType)
 	case "/":
 		return evalDiv(left, right, leftType)
+	case "<":
+		return evalLt(left, right, leftType)
+	case "<=":
+		return evalLe(left, right, leftType)
+	case ">":
+		return evalGt(left, right, leftType)
+	case ">=":
+		return evalGe(left, right, leftType)
 	case "==":
 		return evalEq(left, right, leftType)
 	case "!=":
