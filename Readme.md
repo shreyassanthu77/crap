@@ -1,4 +1,5 @@
-# CRAP - CSS Really is a Programming language
+# CRAPLang - CSS Really is a Programming Language
+> not to be confused with crablang, which is a completely different thing.
 
 CRAP is a general purpose programming language inspired by CSS.
 It is a functional language with a focus on simplicity and readability (if I say so myself).
