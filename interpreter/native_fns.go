@@ -28,7 +28,8 @@ var printFn = ruleFromNativeFnCall(NativeFnCall{
 	Fn: ast.Identifier{Name: "print"},
 	Parameters: []ast.Attreibute{
 		{
-			Name: ast.Identifier{Name: "value"},
+			Name:    ast.Identifier{Name: "value"},
+			Default: ast.NilValue{},
 		},
 	},
 	Handler: func(env *Environment) (ast.Value, error) {
