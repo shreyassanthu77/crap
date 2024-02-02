@@ -19,7 +19,7 @@ func Eval(program ast.Program) (ast.Value, error) {
 
 	main, err := rootEnv.genFn("main")
 	if err != nil {
-		return nil, fmt.Errorf("no main rule found")
+		return ast.NilValue{}, fmt.Errorf("no main rule found")
 	}
 
 	return evalRule(main, []ast.Value{}, rootEnv)

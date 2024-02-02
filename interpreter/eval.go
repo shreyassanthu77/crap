@@ -15,13 +15,13 @@ func evalVarDeclaration(decl ast.Declaration, env *Environment) (ast.Value, erro
 	name := decl.Property.Name[2:] // remove the -- from the name
 
 	if len(decl.Parameters) != 1 {
-		return nil, fmt.Errorf("variable declaration should have exactly one value")
+		return ast.NilValue{}, fmt.Errorf("variable declaration should have exactly one value")
 	}
 	value, err := evalValue(decl.Parameters[0], env)
 
 	val, err := evalValue(value, env)
 	if err != nil {
-		return nil, err
+		return ast.NilValue{}, err
 	}
 	env.setVar(name, val)
 	return val, nil
@@ -32,11 +32,11 @@ func evalStmt(stmt ast.Statement, env *Environment) (ast.Value, error) {
 	case ast.Rule:
 		err := env.setFn(stmt)
 		if err != nil {
-			return nil, err
+			return ast.NilValue{}, err
 		}
 		return ast.NilValue{}, nil
 	case ast.AtRule:
-		panic("at-rules not supported yet")
+		return evalAtRule(env, stmt)
 	case ast.Declaration:
 		if len(stmt.Property.Name) > 2 && stmt.Property.Name[:2] == "--" {
 			return evalVarDeclaration(stmt, env)
@@ -50,7 +50,7 @@ func evalStmt(stmt ast.Statement, env *Environment) (ast.Value, error) {
 		return stmt.Handler(env)
 	}
 
-	return nil, nil
+	return ast.NilValue{}, nil
 }
 
 func verifyAndAddParamsToEnv(attributes []ast.Attreibute, params []ast.Value, env *Environment) error {
@@ -73,20 +73,38 @@ func verifyAndAddParamsToEnv(attributes []ast.Attreibute, params []ast.Value, en
 	return nil
 }
 
+func evalStatementList(stmts []ast.Statement, env *Environment) (ast.Value, error) {
+	var res ast.Value = ast.NilValue{}
+	var err error
+	for _, stmt := range stmts {
+		res, err = evalStmt(stmt, env)
+		if err != nil {
+			return ast.NilValue{}, err
+		}
+		if isReturnValue(res) {
+			break
+		}
+	}
+	return res, err
+}
+
 func evalRule(rule ast.Rule, params []ast.Value, parent *Environment) (ast.Value, error) {
 	env := parent.fork()
 	err := verifyAndAddParamsToEnv(rule.Selector.Atrributes, params, env)
 	if err != nil {
-		return nil, err
+		return ast.NilValue{}, err
 	}
 
-	var res ast.Value = ast.NilValue{}
-	for _, stmt := range rule.Body {
-		_res, err := evalStmt(stmt, env)
-		if err != nil {
-			return nil, err
-		}
-		res = _res
+	res, err := evalStatementList(rule.Body, env)
+	if err != nil {
+		return ReturnValue{
+			Value: ast.NilValue{},
+		}, err
 	}
-	return res, nil
+
+	if isReturnValue(res) {
+		return res.(ReturnValue).Value, nil
+	}
+
+	return ast.NilValue{}, nil
 }

@@ -67,5 +67,5 @@ func (e *Environment) getVar(name string) (ast.Value, error) {
 		return e.Parent.getVar(name)
 	}
 
-	return nil, fmt.Errorf("variable %s not found", name)
+	return ast.NilValue{}, fmt.Errorf("variable %s not found", name)
 }

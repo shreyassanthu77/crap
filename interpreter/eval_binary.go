@@ -108,12 +108,12 @@ func evalOr(left, right ast.Value) (ast.Value, error) {
 func evalBinaryOp(op ast.BinaryOp, env *Environment) (ast.Value, error) {
 	left, err := evalValue(op.Left, env)
 	if err != nil {
-		return nil, err
+		return ast.NilValue{}, err
 	}
 
 	right, err := evalValue(op.Right, env)
 	if err != nil {
-		return nil, err
+		return ast.NilValue{}, err
 	}
 
 	leftType := getValueType(left)
@@ -149,7 +149,7 @@ func evalBinaryOp(op ast.BinaryOp, env *Environment) (ast.Value, error) {
 	case "!=":
 		val, err := evalEq(left, right, leftType)
 		if err != nil {
-			return nil, err
+			return ast.NilValue{}, err
 		}
 		return ast.Boolean{Value: !val.(ast.Boolean).Value}, nil
 	case "&&":

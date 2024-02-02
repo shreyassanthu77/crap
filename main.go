@@ -10,26 +10,24 @@ import (
 
 func main() {
 	input := `
+
+ex[n] {
+	@return $n;
+}
+
 factorial[n] {
-	@if n == 1 {
-			@return 1;
+	@if $n == 0 || $n == 1 {
+			--result: 1;
+			@return $result;
+	} @else {
+		print: "else block";
 	}
 	@return $n * factorial($n - 1);
 }
 
-add[a][b=1] {
-	print: $a + $b;
-}
-
 main {
-	customPrint[var] {
-		print: main;
-	}
-
-	--msg: "Hello, World!";
-	print: 1 + 2*3 - 4 / 2;
-	customPrint: $msg + " " + "This is a test";
-	add: 1 ();
+	--result: factorial(5);
+	@return $result;
 }
 	`
 	lex := lexer.New(input)
