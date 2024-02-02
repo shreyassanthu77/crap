@@ -1,5 +1,6 @@
-### CISP - CSS Is a Programming language
-CISP is a general purpose programming language inspired by CSS.
+# CRAP - CSS Really is a Programming language
+
+CRAP is a general purpose programming language inspired by CSS.
 It is a functional language with a focus on simplicity and readability (if I say so myself).
 
 ## Getting Started
