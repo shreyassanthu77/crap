@@ -3,12 +3,12 @@ package ast
 import "fmt"
 
 type Value interface {
-	isValue()
+	IsValue()
 }
 
 type NilValue struct{}
 
-func (n NilValue) isValue() {}
+func (n NilValue) IsValue() {}
 
 func (n NilValue) String() string {
 	return "Nil"
@@ -18,7 +18,7 @@ type Identifier struct {
 	Name string
 }
 
-func (i Identifier) isValue() {}
+func (i Identifier) IsValue() {}
 
 func (i Identifier) String() string {
 	return fmt.Sprintf("Id(%s)", i.Name)
@@ -28,7 +28,7 @@ type String struct {
 	Value string
 }
 
-func (s String) isValue() {}
+func (s String) IsValue() {}
 
 func (s String) String() string {
 	return fmt.Sprintf("'%s'", s.Value)
@@ -38,7 +38,7 @@ type Int struct {
 	Value int64
 }
 
-func (n Int) isValue() {}
+func (n Int) IsValue() {}
 
 func (n Int) String() string {
 	return fmt.Sprintf("%d", n.Value)
@@ -48,7 +48,7 @@ type Float struct {
 	Value float64
 }
 
-func (n Float) isValue() {}
+func (n Float) IsValue() {}
 
 func (n Float) String() string {
 	return fmt.Sprintf("%f", n.Value)
@@ -58,7 +58,7 @@ type Boolean struct {
 	Value bool
 }
 
-func (b Boolean) isValue() {}
+func (b Boolean) IsValue() {}
 
 func (b Boolean) String() string {
 	return fmt.Sprintf("Bool(%t)", b.Value)
@@ -68,7 +68,7 @@ type VarianleDerefValue struct {
 	Variable Identifier
 }
 
-func (v VarianleDerefValue) isValue() {}
+func (v VarianleDerefValue) IsValue() {}
 
 func (v VarianleDerefValue) String() string {
 	return fmt.Sprintf("var(%s)", v.Variable.Name)
@@ -90,7 +90,7 @@ type FunctionCall struct {
 	Parameters []Value
 }
 
-func (f FunctionCall) isValue() {}
+func (f FunctionCall) IsValue() {}
 
 func (f FunctionCall) String() string {
 	return fmt.Sprintf("Call(%s, %v)", f.Fn, f.Parameters)
@@ -101,7 +101,7 @@ type UnaryOp struct {
 	Value Value
 }
 
-func (u UnaryOp) isValue() {}
+func (u UnaryOp) IsValue() {}
 
 type BinaryOp struct {
 	Left  Value
@@ -109,7 +109,7 @@ type BinaryOp struct {
 	Right Value
 }
 
-func (b BinaryOp) isValue() {}
+func (b BinaryOp) IsValue() {}
 
 type AtRule struct {
 	Name       string
