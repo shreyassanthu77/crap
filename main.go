@@ -10,16 +10,20 @@ import (
 
 func main() {
 	input := `
-fiboncci[n][a=0][b=1] {
+fibonacci.rec[n][a=0][b=1] {
 	@if $n == 0 {
 		@return $a;
 	}
 	print: $a;
-	@return fiboncci($n - 1, $b, $a + $b);
+	@return fibonacci.rec($n - 1, $b, $a + $b);
+}
+
+fibonacci[n] {
+	@return fibonacci.rec($n, (), ());
 }
 
 main {
-	fiboncci: 10 () ();
+	fibonacci: 10;
 }`
 	lex := lexer.New(input)
 	par := parser.New(lex)
