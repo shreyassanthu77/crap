@@ -75,7 +75,7 @@ func (v VarianleDerefValue) String() string {
 }
 
 type Statement interface {
-	isStatement()
+	IsStatement()
 }
 
 type Declaration struct {
@@ -83,7 +83,7 @@ type Declaration struct {
 	Parameters []Value
 }
 
-func (d Declaration) isStatement() {}
+func (d Declaration) IsStatement() {}
 
 type FunctionCall struct {
 	Fn         Identifier
@@ -119,7 +119,7 @@ type AtRule struct {
 
 func (r AtRule) isRule() {}
 
-func (r AtRule) isStatement() {}
+func (r AtRule) IsStatement() {}
 
 type Attreibute struct {
 	Name    Identifier
@@ -142,7 +142,7 @@ type Rule struct {
 
 func (r Rule) isRule() {}
 
-func (r Rule) isStatement() {}
+func (r Rule) IsStatement() {}
 
 type Program struct {
 	Rules []IRule
