@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
+	"github.com/shreyassanthu77/cisp/interpreter"
 	"github.com/shreyassanthu77/cisp/lexer"
 	"github.com/shreyassanthu77/cisp/parser"
 )
@@ -17,8 +17,13 @@ factorial[n] {
 	@return $n * factorial($n - 1);
 }
 
+customPrint[var] {
+	print: $var;
+}
+
 main {
-	print: factorial(5);
+	--msg: "Hello, World!";
+	customPrint: $msg;
 }
 	`
 	lex := lexer.New(input)
@@ -30,6 +35,14 @@ main {
 		return
 	}
 
-	jsoned, err := json.MarshalIndent(ast, "", "  ")
-	fmt.Println(string(jsoned))
+	res, err := interpreter.Eval(ast)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("Result:", res)
+
+	// jsoned, err := json.MarshalIndent(ast, "", "  ")
+	// fmt.Println(string(jsoned))
 }
