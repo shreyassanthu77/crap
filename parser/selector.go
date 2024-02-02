@@ -76,6 +76,8 @@ func (p *Parser) parseAttributes() ([]Attreibute, error) {
 
 			attr.Default = val
 		}
+
+		attrs = append(attrs, attr)
 		_, err = p.expect(lexer.TOK_RBRACKET)
 		if err != nil {
 			return nil, err
