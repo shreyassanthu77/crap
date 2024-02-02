@@ -43,6 +43,9 @@ main {
     nested: ();
 }
 ```
+> `()` is used to call a function without parameters
+or to call a function with default parameters.
+
 
 ### Function Parameters
 - Function parameters can be declared as attributes on the selector.

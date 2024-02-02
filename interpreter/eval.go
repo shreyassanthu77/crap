@@ -6,6 +6,11 @@ import (
 	"github.com/shreyassanthu77/cisp/ast"
 )
 
+func isNilValue(v ast.Value) bool {
+	_, ok := v.(ast.NilValue)
+	return ok
+}
+
 func evalVarDeclaration(decl ast.Declaration, env *Environment) (ast.Value, error) {
 	name := decl.Property.Name[2:] // remove the -- from the name
 
@@ -54,7 +59,15 @@ func verifyAndAddParamsToEnv(attributes []ast.Attreibute, params []ast.Value, en
 	}
 
 	for i, attr := range attributes {
-		env.Vars[attr.Name.Name] = params[i]
+		param := params[i]
+		if isNilValue(param) {
+			if attr.Default != nil {
+				param = attr.Default
+			} else {
+				return fmt.Errorf("parameter %s is required", attr.Name.Name)
+			}
+		}
+		env.setVar(attr.Name.Name, param)
 	}
 
 	return nil

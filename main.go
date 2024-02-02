@@ -17,14 +17,19 @@ factorial[n] {
 	@return $n * factorial($n - 1);
 }
 
-customPrint[var] {
-	print: $var;
+add[a][b=1] {
+	print: $a + $b;
 }
 
 main {
+	customPrint[var] {
+		print: $var;
+	}
+
 	--msg: "Hello, World!";
 	print: 1 + 2*3 - 4 / 2;
 	customPrint: $msg + " " + "This is a test";
+	add: 1 ();
 }
 	`
 	lex := lexer.New(input)
