@@ -27,16 +27,17 @@ func evalVarDeclaration(decl ast.Declaration, env *Environment) (ast.Value, erro
 	return val, nil
 }
 
-func evalStmt(stmt ast.Statement, env *Environment) (ast.Value, error) {
+func evalStmt(stmt ast.Statement, ifState *IfState, env *Environment) (ast.Value, error) {
 	switch stmt := stmt.(type) {
 	case ast.Rule:
 		err := env.setFn(stmt)
 		if err != nil {
 			return ast.NilValue{}, err
 		}
+		ifState.reset()
 		return ast.NilValue{}, nil
 	case ast.AtRule:
-		return evalAtRule(env, stmt)
+		return evalAtRule(env, ifState, stmt)
 	case ast.Declaration:
 		if len(stmt.Property.Name) > 2 && stmt.Property.Name[:2] == "--" {
 			return evalVarDeclaration(stmt, env)
@@ -45,8 +46,10 @@ func evalStmt(stmt ast.Statement, env *Environment) (ast.Value, error) {
 			Fn:         stmt.Property,
 			Parameters: stmt.Parameters,
 		}
+		ifState.reset()
 		return evalFnCall(fnCall, env)
 	case NativeFnCall:
+		ifState.reset()
 		return stmt.Handler(env)
 	}
 
@@ -76,8 +79,9 @@ func verifyAndAddParamsToEnv(attributes []ast.Attreibute, params []ast.Value, en
 func evalStatementList(stmts []ast.Statement, env *Environment) (ast.Value, error) {
 	var res ast.Value = ast.NilValue{}
 	var err error
+	ifState := IfState{}
 	for _, stmt := range stmts {
-		res, err = evalStmt(stmt, env)
+		res, err = evalStmt(stmt, &ifState, env)
 		if err != nil {
 			return ast.NilValue{}, err
 		}

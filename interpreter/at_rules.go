@@ -17,7 +17,17 @@ func isReturnValue(v ast.Value) bool {
 	return ok
 }
 
-func evalIfRule(env *Environment, rule ast.AtRule) (ast.Value, error) {
+type IfState struct {
+	IsIf         bool
+	ShouldBranch bool
+}
+
+func (i *IfState) reset() {
+	i.IsIf = false
+	i.ShouldBranch = false
+}
+
+func evalIfRule(env *Environment, ifState *IfState, rule ast.AtRule) (ast.Value, error) {
 	if len(rule.Parameters) != 1 {
 		return ast.NilValue{}, fmt.Errorf("if rules should have exactly one parameter")
 	}
@@ -33,8 +43,10 @@ func evalIfRule(env *Environment, rule ast.AtRule) (ast.Value, error) {
 	}
 
 	if conditionResult.Value {
+		ifState.ShouldBranch = false
 		return evalStatementList(rule.Body, env)
 	}
+	ifState.ShouldBranch = true
 
 	return ast.NilValue{}, nil
 }
@@ -52,10 +64,29 @@ func evalReturnRule(env *Environment, rule ast.AtRule) (ast.Value, error) {
 	return ReturnValue{Value: value}, nil
 }
 
-func evalAtRule(env *Environment, rule ast.AtRule) (ast.Value, error) {
+func evalAtRule(env *Environment, ifState *IfState, rule ast.AtRule) (ast.Value, error) {
 	switch rule.Name {
 	case "if":
-		return evalIfRule(env, rule)
+		ifState.IsIf = true
+		return evalIfRule(env, ifState, rule)
+	case "elif":
+		if !ifState.IsIf {
+			return ast.NilValue{}, fmt.Errorf("elif rule must be preceded by an if rule")
+		}
+		if ifState.ShouldBranch {
+			return evalIfRule(env, ifState, rule)
+		}
+		return ast.NilValue{}, nil
+	case "else":
+		if !ifState.IsIf {
+			return ast.NilValue{}, fmt.Errorf("else rule must be preceded by an if rule")
+		}
+		if ifState.ShouldBranch {
+			ifState.reset()
+			return evalStatementList(rule.Body, env)
+		}
+		ifState.reset()
+		return ast.NilValue{}, nil
 	case "return":
 		return evalReturnRule(env, rule)
 	}
