@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/shreyassanthu77/cisp/interpreter"
 	"github.com/shreyassanthu77/cisp/lexer"
@@ -9,39 +11,40 @@ import (
 )
 
 func main() {
-	input := `
-fibonacci.rec[n][a=0][b=1] {
-	@if $n == 0 {
-		@return $a;
-	}
-	print: $a;
-	@return fibonacci.rec($n - 1, $b, $a + $b);
-}
-
-fibonacci[n] {
-	@return fibonacci.rec($n, (), ());
-}
-
-main {
-	fibonacci: 10;
-}`
-	lex := lexer.New(input)
-	par := parser.New(lex)
-
-	ast, err := par.Parse()
-	if err != nil {
-		fmt.Println(err)
+	args := os.Args[1:]
+	if len(args) == 0 {
+		fmt.Println("Usage: crap <input>")
 		return
 	}
 
-	res, err := interpreter.Eval(ast)
-	if err != nil {
-		fmt.Println(err)
-		return
+	for _, arg := range args {
+		file, err := os.ReadFile(arg)
+		if err != nil {
+			fmt.Printf("Error loading file: %s\n", err)
+			continue
+		}
+		input := string(file)
+		fmt.Println(">> Executing:", arg)
+		fmt.Println("-------------------------")
+
+		lex := lexer.New(input)
+		par := parser.New(lex)
+
+		ast, err := par.Parse()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		t := time.Now()
+		res, err := interpreter.Eval(ast)
+		done := time.Since(t)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println("-------------------------")
+		fmt.Printf("Main Returned %v in: %v\n\n", res, done)
 	}
-
-	fmt.Println("Result:", res)
-
-	// jsoned, err := json.MarshalIndent(ast, "", "  ")
-	// fmt.Println(string(jsoned))
 }
