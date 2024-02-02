@@ -39,11 +39,15 @@ func evalValue(value ast.Value, env *Environment) (ast.Value, error) {
 	case ast.FunctionCall:
 		return evalFnCall(value, env)
 	case ast.Identifier:
-		val, err := env.getVar(value.Name)
+		_, err := env.getVar(value.Name)
 		if err != nil {
-			return nil, err
+			_, err := env.genFn(value.Name)
+			if err == nil {
+				return nil, fmt.Errorf("You cannot use a function as a value use %s() instead of %s if you want to call it", value.Name, value.Name)
+			}
+			return nil, fmt.Errorf("Literal Identifiers are not allowed use $variable if you want to use a variable")
 		}
-		return val, nil
+		return nil, fmt.Errorf("Literal Identifiers are not allowed use $%s instead of %s", value.Name, value.Name)
 	case ast.Int, ast.Float, ast.String, ast.Boolean, ast.NilValue:
 		return value, nil
 	case ast.UnaryOp:

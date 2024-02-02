@@ -23,7 +23,7 @@ add[a][b=1] {
 
 main {
 	customPrint[var] {
-		print: $var;
+		print: main;
 	}
 
 	--msg: "Hello, World!";
