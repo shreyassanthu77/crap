@@ -71,12 +71,13 @@ func evalFnCall(fnCall ast.FunctionCall, env *Environment) (ast.Value, error) {
 		return nil, err
 	}
 
+	params := make([]ast.Value, len(fnCall.Parameters))
 	for i, param := range fnCall.Parameters {
-		fnCall.Parameters[i], err = evalValue(param, env)
+		params[i], err = evalValue(param, env)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return evalRule(fn, fnCall.Parameters, env)
+	return evalRule(fn, params, env)
 }
