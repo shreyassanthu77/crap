@@ -2,70 +2,35 @@
 > not to be confused with crablang, which is a completely different thing.
 
 CRAP is a general purpose programming language inspired by CSS.
-It is a functional language with a focus on simplicity and readability (if I say so myself).
 
 ## Getting Started
 - No Comments, who needs them anyway. just write self-documenting code.
-### Functions everywhere
-- CSS rules you are used to are now functions.
-- The Property Declarations are now function calls with the property name as the function name.
-- The property value is now the function parameter. (multiple parameters are separated by spaces)
-- If you want to call a function in the value of a property you can use `function_name()` syntax.
-```css
-thisIsAFunction {
-    print: "Hello World!";
-    add: 1 2;
-    print: add(1, 2);
-}
-```
-### Variables
-- Any pproperty starting with `--` is a variable.
-- Variables are scoped to the selector they are defined in and all child selectors (yes nested selectors are a thing).
-- Variables can be used in any property value by using the `var` function
-or by prefixing the variable name with a `$`
-```css
-main {
-    --a: 1;
-    --b: 2;
-    --c: add(var(--a), $b);
-    print: $c;
-}
-```
-### Nesting
-- Selectors can be nested inside each other (just like in modern CSS).
-- Scopes work like you'd expect them in other languages.
-```css
-main {
-    nested {
-        print: "Hello World!";
-    }
+- Selectors are used to define functions.
+- Attributes are used to define parameters.
+- Custom properties are used to define variables.
+- declarations are function calls with values as parameters.
+- `@if`, `@elif`, `@else`, `@return` are used for control flow.
+- Nested selectors are supported.
+- `print` is used to print values to the console.
+- `()` is used as a placeholder for default values in function calls.
+If there is no default value, the parameter is required.
+- No null values but also no optional types either, because...sir this is CRAP.
+- Check out the examples below for more information.
 
-    nested: ();
-}
+## Usage
+- Clone the repository
+```bash
+git clone https://github.com/shreyassanthu77/crap.git
+cd crap
 ```
-> `()` is used to call a function without parameters
-or to call a function with default parameters.
-
-
-### Function Parameters
-- Function parameters can be declared as attributes on the selector.
-- The value of the attribute is the default value of the parameter.
-- If the parameter is not passed to the function the default value is used.
-- If you don't want to pass a parameter you can use `()` as the value.
-```css
-someFunction[parameter=1] {
-    print: $parameter;
-}
-
-main {
-    someFunction: 2;
-    someFunction: ();
-}
+- Build main.go
+```bash
+go build -o crap main.go
 ```
-prints:
-```
-2
-1
+
+- Run the examples
+```bash
+./crap examples/*.css
 ```
 
 ## Examples
@@ -86,11 +51,33 @@ factorial[n] {
 
     @return $n * factorial($n - 1);
 }
+
+main {
+    print: factorial(5);
+}
 ```
 
+### Fibonacci
+```css
+fibonacci.rec[n][a=0][b=1] {
+	@if $n == 0 {
+		@return $a;
+	}
+	print: $a;
+	@return fibonacci.rec($n - 1, $b, $a + $b);
+}
+
+fibonacci[n] {
+	@return fibonacci.rec($n, (), ());
+}
+
+main {
+	fibonacci: 10;
+}
+```
 ## Progress
 
 - [x] Lexer
 - [x] Parser
-- [ ] Interpreter
+- [x] Interpreter
 - [ ] Compiler
