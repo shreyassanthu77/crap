@@ -1,4 +1,7 @@
 # CRAPLang - CSS Really is a Programming Language
+![Developed by Badge](https://img.shields.io/badge/Dveloped_by-Shreyas-blue?logo=windowsterminal)
+![Powerd by Badge](https://img.shields.io/badge/Powerd_by-golang-orange?logo=go)
+
 > not to be confused with crablang, which is a completely different thing.
 
 CRAP is a general purpose programming language inspired by CSS🔥.
@@ -42,7 +45,7 @@ main {
 }
 ```
 
-### Factorial🔢
+### Factorial
 ```css
 factorial[n] {
     @if $n == 0 || $n == 1 {
