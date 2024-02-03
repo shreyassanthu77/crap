@@ -50,7 +50,7 @@ func (p *Parser) expect(typ string) (lexer.Token, error) {
 		return lexer.Token{}, err
 	}
 	if tok.Typ != typ {
-		return lexer.Token{}, fmt.Errorf("%d:%d Expected %s but got %s", tok.Line, tok.Col, typ, tok.Typ)
+		return lexer.Token{}, fmt.Errorf("%d:%d Expected %s but got %s", tok.Span.Start.Line, tok.Span.Start.Col, typ, tok.Typ)
 	}
 	return tok, nil
 }

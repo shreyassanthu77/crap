@@ -21,29 +21,29 @@ func (p *Parser) parseLiteralVal() (Value, error) {
 			return nil, err
 		}
 		if next.Typ == lexer.TOK_LPAREN {
-			return p.parseFunctionCall(tok.Value)
+			return p.parseFunctionCall(tok)
 		}
-		return Identifier{Name: tok.Value}, nil
+		return Identifier{Name: tok.Value, Span: tok.Span}, nil
 	case lexer.TOK_STRING:
-		return String{Value: tok.Value}, nil
+		return String{Value: tok.Value, Span: tok.Span}, nil
 	case lexer.TOK_INT:
 		f, err := strconv.ParseInt(tok.Value, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to parse number: %s", err)
 		}
-		return Int{Value: f}, nil
+		return Int{Value: f, Span: tok.Span}, nil
 	case lexer.TOK_FLOAT:
 		f, err := strconv.ParseFloat(tok.Value, 64)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to parse number: %s", err)
 		}
-		return Float{Value: f}, nil
+		return Float{Value: f, Span: tok.Span}, nil
 	case lexer.TOK_TRUE:
-		return Boolean{Value: true}, nil
+		return Boolean{Value: true, Span: tok.Span}, nil
 	case lexer.TOK_FALSE:
-		return Boolean{Value: false}, nil
+		return Boolean{Value: false, Span: tok.Span}, nil
 	case lexer.TOK_EMPTY:
-		return NilValue{}, nil
+		return NilValue{Span: tok.Span}, nil
 	case lexer.TOK_LPAREN:
 		val, err := p.parseValue()
 		if err != nil {
@@ -58,8 +58,7 @@ func (p *Parser) parseLiteralVal() (Value, error) {
 		return val, nil
 	}
 
-	fmt.Println(tok)
-	panic("Unreachable")
+	return nil, fmt.Errorf("Unexpected token: %s", tok.Typ)
 }
 
 func (p *Parser) parseUnaryExpression() (Value, error) {
@@ -74,8 +73,13 @@ func (p *Parser) parseUnaryExpression() (Value, error) {
 		if err != nil {
 			return nil, err
 		}
+		variable := Identifier{
+			Name: ident.Value,
+			Span: ident.Span,
+		}
 		return VarianleDerefValue{
-			Variable: Identifier{Name: ident.Value},
+			Variable: variable,
+			Span:     ident.Span,
 		}, nil
 	}
 
@@ -88,9 +92,12 @@ func (p *Parser) parseUnaryExpression() (Value, error) {
 		if err != nil {
 			return nil, err
 		}
+		span := next.Span
+		span.End = val.GetSpan().End
 		return UnaryOp{
 			Op:    next.Value,
 			Value: val,
+			Span:  span,
 		}, nil
 	}
 
@@ -120,10 +127,14 @@ func (p *Parser) parseMultiplicativeExpr() (Value, error) {
 			return BinaryOp{}, err
 		}
 
+		span := left.GetSpan()
+		span.End = right.GetSpan().End
+
 		left = BinaryOp{
 			Left:  left,
 			Op:    next.Value,
 			Right: right,
+			Span:  span,
 		}
 	}
 
@@ -153,10 +164,14 @@ func (p *Parser) parseAdditiveExpr() (Value, error) {
 			return BinaryOp{}, err
 		}
 
+		span := left.GetSpan()
+		span.End = right.GetSpan().End
+
 		left = BinaryOp{
 			Left:  left,
 			Op:    next.Value,
 			Right: right,
+			Span:  span,
 		}
 	}
 
@@ -187,10 +202,14 @@ func (p *Parser) parseRelationalExpr() (Value, error) {
 			return BinaryOp{}, err
 		}
 
+		span := left.GetSpan()
+		span.End = right.GetSpan().End
+
 		left = BinaryOp{
 			Left:  left,
 			Op:    next.Value,
 			Right: right,
+			Span:  span,
 		}
 	}
 
@@ -220,10 +239,14 @@ func (p *Parser) parseEqualityExpr() (Value, error) {
 			return BinaryOp{}, err
 		}
 
+		span := left.GetSpan()
+		span.End = right.GetSpan().End
+
 		left = BinaryOp{
 			Left:  left,
 			Op:    next.Value,
 			Right: right,
+			Span:  span,
 		}
 	}
 
@@ -253,10 +276,14 @@ func (p *Parser) parseLogicalAndExpr() (Value, error) {
 			return BinaryOp{}, err
 		}
 
+		span := left.GetSpan()
+		span.End = right.GetSpan().End
+
 		left = BinaryOp{
 			Left:  left,
 			Op:    next.Value,
 			Right: right,
+			Span:  span,
 		}
 	}
 
@@ -286,10 +313,14 @@ func (p *Parser) parseLogicalOrExpr() (Value, error) {
 			return BinaryOp{}, err
 		}
 
+		span := left.GetSpan()
+		span.End = right.GetSpan().End
+
 		left = BinaryOp{
 			Left:  left,
 			Op:    next.Value,
 			Right: right,
+			Span:  span,
 		}
 	}
 
