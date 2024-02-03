@@ -42,15 +42,15 @@ func (e *Environment) genFn(name string) (ast.Rule, error) {
 	return fn, nil
 }
 
-func (e *Environment) setFn(fn ast.Rule) error {
+func (e *Environment) setFn(fn ast.Rule) (ast.Rule, error) {
 	name := fn.Selector.Identifier.Name
-	_, ok := e.Funcs[name]
+	existing, ok := e.Funcs[name]
 	if ok {
-		return fmt.Errorf("function %s already defined in this scope", name)
+		return existing, fmt.Errorf("function %s already defined", name)
 	}
 
 	e.Funcs[name] = fn
-	return nil
+	return ast.Rule{}, nil
 }
 
 func (e *Environment) setVar(name string, value ast.Value) {

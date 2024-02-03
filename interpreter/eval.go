@@ -30,9 +30,9 @@ func evalVarDeclaration(decl ast.Declaration, env *Environment) (ast.Value, erro
 func evalStmt(stmt ast.Statement, ifState *IfState, env *Environment) (ast.Value, error) {
 	switch stmt := stmt.(type) {
 	case ast.Rule:
-		err := env.setFn(stmt)
+		_, err := env.setFn(stmt)
 		if err != nil {
-			return ast.NilValue{}, err
+			return ast.NilValue{}, fmt.Errorf("function %s already defined", stmt.Selector.Identifier.Name)
 		}
 		ifState.reset()
 		return ast.NilValue{}, nil

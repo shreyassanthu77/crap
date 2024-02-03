@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/shreyassanthu77/cisp/ast"
+	"github.com/shreyassanthu77/cisp/lexer"
 )
 
 type NativeFnCall struct {
@@ -13,6 +14,10 @@ type NativeFnCall struct {
 }
 
 func (n NativeFnCall) IsStatement() {}
+
+func (n NativeFnCall) GetSpan() lexer.Span {
+	return lexer.Span{}
+}
 
 func ruleFromNativeFnCall(n NativeFnCall) ast.Rule {
 	return ast.Rule{

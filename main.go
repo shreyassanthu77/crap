@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/shreyassanthu77/cisp/interpreter"
-	"github.com/shreyassanthu77/cisp/lexer"
-	"github.com/shreyassanthu77/cisp/parser"
 )
 
 func main() {
@@ -27,17 +25,14 @@ func main() {
 		fmt.Println(">> Executing:", arg)
 		fmt.Println("-------------------------")
 
-		lex := lexer.New(input)
-		par := parser.New(lex)
-
-		ast, err := par.Parse()
+		interpreter, err := interpreter.New(input)
 		if err != nil {
 			fmt.Println(err)
-			return
+			continue
 		}
 
 		t := time.Now()
-		res, err := interpreter.Eval(ast)
+		res := interpreter.Run()
 		done := time.Since(t)
 		if err != nil {
 			fmt.Println(err)
