@@ -54,14 +54,25 @@ const (
 	TOK_IMPORTANT = "IMPORTANT"
 )
 
+type Loc struct {
+	Pos  int
+	Line int
+	Col  int
+}
+
+type Span struct {
+	Start Loc
+	End   Loc
+}
+
 type Token struct {
 	Typ   string
 	Value string
-	Pos   int
-	Line  int
-	Col   int
+	Span  Span
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("{%d:%d} TOK<%s>(%s)", t.Line, t.Col, t.Typ, t.Value)
+	line := t.Span.Start.Line
+	col := t.Span.Start.Col
+	return fmt.Sprintf("{%d:%d} TOK<%s>(%s)", line, col, t.Typ, t.Value)
 }
