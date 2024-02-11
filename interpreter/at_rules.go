@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/shreyassanthu77/cisp/ast"
+	"github.com/shreyassanthu77/cisp/lexer"
 )
 
 type ReturnValue struct {
@@ -11,6 +12,10 @@ type ReturnValue struct {
 }
 
 func (r ReturnValue) IsValue() {}
+
+func (r ReturnValue) GetSpan() lexer.Span {
+	return r.Value.GetSpan()
+}
 
 func isReturnValue(v ast.Value) bool {
 	_, ok := v.(ReturnValue)
