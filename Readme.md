@@ -23,6 +23,7 @@ If there is no default value, the parameter is required.
 git clone https://github.com/shreyassanthu77/crap.git
 cd crap
 ```
+- Make sure you have go installed
 - Build main.go
 ```bash
 go build -o crap main.go
@@ -31,6 +32,17 @@ go build -o crap main.go
 - Run the examples
 ```bash
 ./crap examples/*.css
+```
+
+## Docker
+- Build the docker image
+```bash
+docker build -t crap . && docker run -it crap
+```
+this will open a shell inside the container, you can run the examples from there.
+- Run the examples
+```bash
+./crap examples/*
 ```
 
 ## Examples
