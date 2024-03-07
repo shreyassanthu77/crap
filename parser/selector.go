@@ -17,9 +17,13 @@ func (p *Parser) parseSelector(ident Identifier) (Selector, error) {
 			return Selector{}, err
 		}
 
+		span := ident.Span
+		span.End = attr[len(attr)-1].Span.End
+
 		return Selector{
 			Identifier: ident,
 			Atrributes: attr,
+			Span:       span,
 		}, nil
 	}
 
@@ -35,6 +39,7 @@ func (p *Parser) parseSelector(ident Identifier) (Selector, error) {
 	return Selector{
 		Identifier: ident,
 		Atrributes: nil,
+		Span:       ident.Span,
 	}, nil
 }
 
@@ -62,9 +67,15 @@ func (p *Parser) parseAttributes() ([]Attreibute, error) {
 			return nil, err
 		}
 
+		attrId := Identifier{
+			Name: id.Value,
+			Span: id.Span,
+		}
+
 		attr := Attreibute{
-			Name:    Identifier{Name: id.Value},
+			Name:    attrId,
 			Default: NilValue{},
+			Span:    id.Span,
 		}
 
 		if next.Typ == lexer.TOK_EQUAL {
@@ -75,6 +86,7 @@ func (p *Parser) parseAttributes() ([]Attreibute, error) {
 			}
 
 			attr.Default = val
+			attr.Span.End = val.GetSpan().End
 		}
 
 		attrs = append(attrs, attr)

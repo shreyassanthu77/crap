@@ -5,10 +5,16 @@ import (
 	"github.com/shreyassanthu77/cisp/lexer"
 )
 
-func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
+func (p *Parser) parseFunctionCall(tok lexer.Token) (FunctionCall, error) {
+	name := tok.Value
 	_, err := p.expect(lexer.TOK_LPAREN)
 	if err != nil {
 		return FunctionCall{}, err
+	}
+
+	fn := Identifier{
+		Name: name,
+		Span: tok.Span,
 	}
 
 	params := []Value{}
@@ -20,8 +26,9 @@ func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
 	if next.Typ == lexer.TOK_RPAREN {
 		p.next()
 		return FunctionCall{
-			Fn:         Identifier{Name: name},
+			Fn:         fn,
 			Parameters: params,
+			Span:       tok.Span,
 		}, nil
 	}
 
@@ -49,9 +56,13 @@ func (p *Parser) parseFunctionCall(name string) (FunctionCall, error) {
 		return FunctionCall{}, err
 	}
 
+	span := tok.Span
+	span.End = params[len(params)-1].GetSpan().End
+
 	return FunctionCall{
-		Fn:         Identifier{Name: name},
+		Fn:         fn,
 		Parameters: params,
+		Span:       span,
 	}, nil
 }
 
@@ -62,6 +73,8 @@ func (p *Parser) parseDeclarationStmt(id Identifier) (Declaration, error) {
 			Property: id,
 		}, err
 	}
+
+	span := id.Span
 
 	values := []Value{}
 	for {
@@ -82,14 +95,17 @@ func (p *Parser) parseDeclarationStmt(id Identifier) (Declaration, error) {
 		values = append(values, value)
 	}
 
-	_, err = p.expect(lexer.TOK_SEMICOLON)
+	semi, err := p.expect(lexer.TOK_SEMICOLON)
 	if err != nil {
 		return Declaration{}, err
 	}
 
+	span.End = semi.Span.End
+
 	return Declaration{
 		Property:   id,
 		Parameters: values,
+		Span:       span,
 	}, nil
 }
 
@@ -113,25 +129,32 @@ func (p *Parser) parseStatement() (Statement, error) {
 		return nil, err
 	}
 
-	if next.Typ == lexer.TOK_COLON {
-		return p.parseDeclarationStmt(Identifier{Name: id.Value})
+	stmtId := Identifier{
+		Name: id.Value,
+		Span: id.Span,
 	}
 
-	return p.parseNestedRule(Identifier{Name: id.Value})
+	if next.Typ == lexer.TOK_COLON {
+		return p.parseDeclarationStmt(stmtId)
+	}
+
+	return p.parseNestedRule(stmtId)
 }
 
-func (p *Parser) parseDeclarationBlock() ([]Statement, error) {
-	_, err := p.expect(lexer.TOK_LSQUIRLY)
+func (p *Parser) parseDeclarationBlock() ([]Statement, lexer.Span, error) {
+	lsq, err := p.expect(lexer.TOK_LSQUIRLY)
 	if err != nil {
-		return nil, err
+		return nil, lexer.Span{}, err
 	}
+
+	span := lsq.Span
 
 	stmts := []Statement{}
 	var lastErr error
 	for {
 		next, err := p.peek()
 		if err != nil {
-			return nil, err
+			return nil, lexer.Span{}, err
 		}
 
 		if next.Typ == lexer.TOK_RSQUIRLY {
@@ -148,15 +171,17 @@ func (p *Parser) parseDeclarationBlock() ([]Statement, error) {
 	}
 
 	if lastErr != nil {
-		return nil, lastErr
+		return nil, lexer.Span{}, lastErr
 	}
 
-	_, err = p.expect(lexer.TOK_RSQUIRLY)
+	rsq, err := p.expect(lexer.TOK_RSQUIRLY)
 	if err != nil {
-		return nil, err
+		return nil, lexer.Span{}, err
 	}
 
-	return stmts, nil
+	span.End = rsq.Span.End
+
+	return stmts, span, nil
 }
 
 func (p *Parser) parseNestedRule(id Identifier) (Rule, error) {
@@ -165,14 +190,22 @@ func (p *Parser) parseNestedRule(id Identifier) (Rule, error) {
 		return Rule{}, err
 	}
 
-	decls, err := p.parseDeclarationBlock()
+	decls, declSpan, err := p.parseDeclarationBlock()
 	if err != nil {
 		return Rule{}, err
+	}
+
+	span := selector.Span
+	span.End = declSpan.End
+
+	if len(decls) > 0 {
+		span.End = decls[len(decls)-1].GetSpan().End
 	}
 
 	return Rule{
 		Selector: selector,
 		Body:     decls,
+		Span:     span,
 	}, nil
 }
 
@@ -182,15 +215,29 @@ func (p *Parser) parseRule() (Rule, error) {
 		return Rule{}, err
 	}
 
-	return p.parseNestedRule(Identifier{Name: id.Value})
+	ruleId := Identifier{
+		Name: id.Value,
+		Span: id.Span,
+	}
+
+	res, err := p.parseNestedRule(ruleId)
+	if err != nil {
+		return Rule{}, err
+	}
+
+	return res, nil
 }
 
 func (p *Parser) parseAtRule() (AtRule, error) {
-	p.next() // Consume '@'
+	at, _ := p.next() // Consume '@'
+	span := at.Span
+
 	name, err := p.expect(lexer.TOK_IDENTIFIER)
 	if err != nil {
 		return AtRule{}, err
 	}
+
+	span.End = name.Span.End
 
 	params := []Value{}
 	for {
@@ -211,21 +258,28 @@ func (p *Parser) parseAtRule() (AtRule, error) {
 		params = append(params, param)
 	}
 
+	if len(params) > 0 {
+		span.End = params[len(params)-1].GetSpan().End
+	}
+
 	next, err := p.peek()
 	if err != nil {
 		return AtRule{}, err
 	}
 
 	if next.Typ == lexer.TOK_LSQUIRLY {
-		decls, err := p.parseDeclarationBlock()
+		decls, declSpan, err := p.parseDeclarationBlock()
 		if err != nil {
 			return AtRule{}, err
 		}
+
+		span.End = declSpan.End
 
 		return AtRule{
 			Name:       name.Value,
 			Parameters: params,
 			Body:       decls,
+			Span:       span,
 		}, nil
 	}
 
@@ -237,5 +291,6 @@ func (p *Parser) parseAtRule() (AtRule, error) {
 	return AtRule{
 		Name:       name.Value,
 		Parameters: params,
+		Span:       span,
 	}, nil
 }
