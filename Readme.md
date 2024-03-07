@@ -1,9 +1,12 @@
 # CRAPLang - CSS Really is a Programming Language
+![Developed by Badge](https://img.shields.io/badge/Dveloped_by-Shreyas-blue?logo=windowsterminal)
+![Powerd by Badge](https://img.shields.io/badge/Powerd_by-golang-orange?logo=go)
+
 > not to be confused with crablang, which is a completely different thing.
 
-CRAP is a general purpose programming language inspired by CSS.
+CRAP is a general purpose programming language inspired by CSS🔥.
 
-## Getting Started
+## Getting Started💫
 - No Comments, who needs them anyway. just write self-documenting code.
 - Selectors are used to define functions.
 - Attributes are used to define parameters.
@@ -17,7 +20,7 @@ If there is no default value, the parameter is required.
 - No null values but also no optional types either, because...sir this is CRAP.
 - Check out the examples below for more information.
 
-## Usage
+## Usage📔
 - Clone the repository
 ```bash
 git clone https://github.com/shreyassanthu77/crap.git
@@ -45,7 +48,7 @@ this will open a shell inside the container, you can run the examples from there
 ./crap examples/*
 ```
 
-## Examples
+## Examples📝
 
 ### Hello World
 ```css
